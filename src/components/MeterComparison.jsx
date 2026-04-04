@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { haptic } from '../utils/haptic'
 
 export default function MeterComparison({ meters, currentMeter, currentProvider, t }) {
   const [open, setOpen] = useState(false)
@@ -63,7 +64,7 @@ export default function MeterComparison({ meters, currentMeter, currentProvider,
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        onClick={handleCompare}
+        onClick={() => { haptic(); handleCompare() }}
         className="px-4 py-2 rounded-xl font-medium text-sm border border-[var(--color-outline)] bg-[var(--color-surface)] text-[var(--color-ink)] hover:bg-[var(--color-surface-dim)] transition-colors cursor-pointer whitespace-nowrap flex items-center gap-2"
         aria-label={t('Compare Meters')}
       >
@@ -170,12 +171,22 @@ export default function MeterComparison({ meters, currentMeter, currentProvider,
                   {results.filter(r => !r.error).length > 0 && (
                     <div className="mt-6 pt-6 border-t border-[var(--color-outline)]">
                       <h4 className="text-sm font-medium text-[var(--color-ink)]/70 mb-4">{t('Monthly kWh Comparison')}</h4>
-                      <div className="space-y-3">
+                      <motion.div
+                        initial="hidden"
+                        animate="visible"
+                        variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
+                        className="space-y-3"
+                      >
                         {(() => {
                           const valid = results.filter(r => !r.error)
                           const maxKwh = Math.max(...valid.map(r => r.kwh), 1)
                           return valid.map((r, i) => (
-                            <div key={i} className="flex items-center gap-3">
+                            <motion.div
+                              key={i}
+                              variants={{ hidden: { opacity: 0, x: -20 }, visible: { opacity: 1, x: 0 } }}
+                              transition={{ duration: 0.4 }}
+                              className="flex items-center gap-3"
+                            >
                               <span className="font-mono text-xs text-[var(--color-ink)]/60 w-24 truncate">{r.meter.number}</span>
                               <div className="flex-1 h-6 bg-[var(--color-surface-dim)] rounded-full overflow-hidden">
                                 <motion.div
@@ -189,10 +200,10 @@ export default function MeterComparison({ meters, currentMeter, currentProvider,
                                   {r.kwh > 0 ? `${r.kwh.toFixed(0)}` : ''}
                                 </motion.div>
                               </div>
-                            </div>
+                            </motion.div>
                           ))
                         })()}
-                      </div>
+                      </motion.div>
                     </div>
                   )}
                 </>

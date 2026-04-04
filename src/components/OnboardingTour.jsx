@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { haptic } from '../utils/haptic'
 
 const STORAGE_KEY = 'onboarding_done'
 
@@ -126,7 +127,7 @@ export default function OnboardingTour({ t }) {
           {/* Actions */}
           <div className="flex items-center justify-between">
             <button
-              onClick={handleSkip}
+              onClick={() => { haptic(); handleSkip() }}
               className="px-4 py-2 text-sm font-medium text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] transition-colors cursor-pointer"
             >
               {t('Skip')}
@@ -134,7 +135,7 @@ export default function OnboardingTour({ t }) {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={handleNext}
+              onClick={() => { haptic(); handleNext() }}
               className="px-6 py-2.5 rounded-xl text-sm font-medium bg-[var(--color-ink)] text-[var(--color-base)] cursor-pointer"
             >
               {step < steps.length - 1 ? t('Next') : t('Get Started')}

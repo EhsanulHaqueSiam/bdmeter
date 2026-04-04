@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { haptic } from '../utils/haptic'
 import StatsCards from './StatsCards'
 import CustomerInfo from './CustomerInfo'
 import UsageChart from './UsageChart'
@@ -67,7 +68,7 @@ function ExportDropdown({ data, t }) {
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        onClick={() => setOpen(!open)}
+        onClick={() => { haptic(); setOpen(!open) }}
         className="px-4 py-2 rounded-xl font-medium text-sm border border-[var(--color-outline)] bg-[var(--color-surface)] text-[var(--color-ink)] hover:bg-[var(--color-surface-dim)] transition-colors cursor-pointer whitespace-nowrap flex items-center gap-2"
         aria-label={t('Export')}
       >
@@ -86,20 +87,24 @@ function ExportDropdown({ data, t }) {
             className="absolute right-0 top-full mt-2 w-52 bg-[var(--color-surface)] border border-[var(--color-outline)] rounded-xl shadow-lg overflow-hidden z-50"
           >
             {data.rechargeHistory?.length > 0 && (
-              <button
-                onClick={() => { exportRechargesCSV(data.rechargeHistory); setOpen(false) }}
+              <motion.button
+                whileHover={{ x: 2 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => { haptic(); exportRechargesCSV(data.rechargeHistory); setOpen(false) }}
                 className="w-full px-4 py-3 text-left text-sm font-medium text-[var(--color-ink)] hover:bg-[var(--color-surface-dim)] transition-colors cursor-pointer"
               >
                 {t('Export Recharges CSV')}
-              </button>
+              </motion.button>
             )}
             {data.monthlyUsage?.length > 0 && (
-              <button
-                onClick={() => { exportMonthlyCSV(data.monthlyUsage); setOpen(false) }}
+              <motion.button
+                whileHover={{ x: 2 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => { haptic(); exportMonthlyCSV(data.monthlyUsage); setOpen(false) }}
                 className="w-full px-4 py-3 text-left text-sm font-medium text-[var(--color-ink)] hover:bg-[var(--color-surface-dim)] transition-colors cursor-pointer border-t border-[var(--color-outline)]"
               >
                 {t('Export Monthly CSV')}
-              </button>
+              </motion.button>
             )}
           </motion.div>
         )}
@@ -113,7 +118,7 @@ function PrintButton({ t }) {
     <motion.button
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
-      onClick={() => window.print()}
+      onClick={() => { haptic(); window.print() }}
       className="px-4 py-2 rounded-xl font-medium text-sm border border-[var(--color-outline)] bg-[var(--color-surface)] text-[var(--color-ink)] hover:bg-[var(--color-surface-dim)] transition-colors cursor-pointer whitespace-nowrap flex items-center gap-2 print:hidden"
       aria-label={t('Print')}
     >

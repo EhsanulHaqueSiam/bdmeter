@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { haptic } from '../utils/haptic'
 
 export default function QRCodeButton({ meterNo, provider, t }) {
   const [open, setOpen] = useState(false)
@@ -15,7 +16,7 @@ export default function QRCodeButton({ meterNo, provider, t }) {
         transition={{ duration: 0.3, delay: 0.3 }}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        onClick={() => setOpen(true)}
+        onClick={() => { haptic(); setOpen(true) }}
         className="px-3 py-2 rounded-xl font-medium text-sm border border-[var(--color-outline)] bg-[var(--color-surface)] text-[var(--color-ink)] hover:bg-[var(--color-surface-dim)] transition-colors cursor-pointer whitespace-nowrap flex items-center gap-2"
         aria-label={t('QR Code')}
         title={t('QR Code')}
@@ -46,15 +47,17 @@ export default function QRCodeButton({ meterNo, provider, t }) {
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-base font-semibold text-[var(--color-ink)]">{t('QR Code')}</h3>
-                <button
-                  onClick={() => setOpen(false)}
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => { haptic(); setOpen(false) }}
                   className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--color-surface-dim)] transition-colors cursor-pointer"
                   aria-label={t('Close')}
                 >
                   <svg className="w-4 h-4 text-[var(--color-ink)]/60" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
-                </button>
+                </motion.button>
               </div>
               <div className="flex justify-center bg-white rounded-xl p-4">
                 <img

@@ -5,6 +5,7 @@ import {
 } from 'recharts'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { haptic } from '../utils/haptic'
 
 const MONTH_MAP = {
   January: 'Jan', February: 'Feb', March: 'Mar', April: 'Apr',
@@ -78,7 +79,7 @@ export default function UsageChart({ monthlyUsage, t }) {
           {views.map((v) => (
             <motion.button
               key={v.key}
-              onClick={() => setView(v.key)}
+              onClick={() => { haptic(); setView(v.key) }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className={`relative px-3.5 py-1.5 rounded-lg text-sm font-medium cursor-pointer ${

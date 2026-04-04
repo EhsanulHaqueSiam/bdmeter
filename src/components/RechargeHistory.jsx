@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { exportRechargesAsICS } from '../utils/calendarExport'
+import { haptic } from '../utils/haptic'
 
 function CopyButton({ text }) {
   const [status, setStatus] = useState('idle')
@@ -135,7 +136,7 @@ export default function RechargeHistory({ rechargeHistory, provider, t }) {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => exportRechargesAsICS(filtered, provider)}
+            onClick={() => { haptic(); exportRechargesAsICS(filtered, provider) }}
             className="px-3 py-1.5 rounded-lg text-xs font-medium border border-[var(--color-outline)] bg-[var(--color-surface)] text-[var(--color-ink)]/70 hover:bg-[var(--color-surface-dim)] cursor-pointer transition-colors"
             aria-label={t('Export Calendar')}
             title={t('Export Calendar')}
@@ -148,7 +149,7 @@ export default function RechargeHistory({ rechargeHistory, provider, t }) {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => setShowFilters(!showFilters)}
+            onClick={() => { haptic(); setShowFilters(!showFilters) }}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium border cursor-pointer transition-colors ${
               showFilters || search || statusFilter !== 'all' || amountFilter !== 'all'
                 ? 'border-[var(--color-nesco)] bg-blue-50 text-[var(--color-nesco)]'
@@ -219,9 +220,11 @@ export default function RechargeHistory({ rechargeHistory, provider, t }) {
                   ? [{ key: 'all', label: t('All') }, { key: 'successful', label: t('Successful') }]
                   : [{ key: 'all', label: t('All') }, { key: 'auto', label: t('Auto') }, { key: 'pin', label: t('PIN') }]
                 ).map((opt) => (
-                  <button
+                  <motion.button
                     key={opt.key}
-                    onClick={() => setStatusFilter(opt.key)}
+                    onClick={() => { haptic(); setStatusFilter(opt.key) }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     className={`px-2.5 py-1 rounded-md text-xs font-medium cursor-pointer transition-colors ${
                       statusFilter === opt.key
                         ? 'bg-[var(--color-ink)] text-[var(--color-base)]'
@@ -229,7 +232,7 @@ export default function RechargeHistory({ rechargeHistory, provider, t }) {
                     }`}
                   >
                     {opt.label}
-                  </button>
+                  </motion.button>
                 ))}
               </div>
 
@@ -242,9 +245,11 @@ export default function RechargeHistory({ rechargeHistory, provider, t }) {
                   { key: '500-1000', label: '500-1K' },
                   { key: '>1000', label: '>1K' },
                 ].map((opt) => (
-                  <button
+                  <motion.button
                     key={opt.key}
-                    onClick={() => setAmountFilter(opt.key)}
+                    onClick={() => { haptic(); setAmountFilter(opt.key) }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     className={`px-2.5 py-1 rounded-md text-xs font-medium cursor-pointer transition-colors ${
                       amountFilter === opt.key
                         ? 'bg-[var(--color-ink)] text-[var(--color-base)]'
@@ -252,7 +257,7 @@ export default function RechargeHistory({ rechargeHistory, provider, t }) {
                     }`}
                   >
                     {opt.label}
-                  </button>
+                  </motion.button>
                 ))}
               </div>
             </div>
@@ -330,7 +335,7 @@ export default function RechargeHistory({ rechargeHistory, provider, t }) {
             animate={{ opacity: 1 }}
             whileHover={{ backgroundColor: 'rgba(0,0,0,0.02)' }}
             whileTap={{ scale: 0.99 }}
-            onClick={() => setExpanded(!expanded)}
+            onClick={() => { haptic(); setExpanded(!expanded) }}
             className="w-full py-4 text-sm font-medium text-[var(--color-ink)] transition-colors border-t border-[var(--color-outline)] cursor-pointer"
           >
             {expanded ? 'Show Less' : `Show All ${filtered.length} Transactions`}

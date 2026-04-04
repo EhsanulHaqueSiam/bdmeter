@@ -1,5 +1,6 @@
 import { Component } from 'react'
 import { motion } from 'framer-motion'
+import { haptic } from '../utils/haptic'
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -46,7 +47,7 @@ export default class ErrorBoundary extends Component {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={this.handleReload}
+              onClick={() => { haptic('medium'); this.handleReload() }}
               className="px-6 py-3 bg-[var(--color-ink)] text-white rounded-xl font-medium text-sm hover:opacity-90 transition-opacity cursor-pointer"
             >
               Reload

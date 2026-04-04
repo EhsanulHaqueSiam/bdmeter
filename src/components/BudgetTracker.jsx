@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { haptic } from '../utils/haptic'
 
 const STORAGE_KEY = 'monthly_budget'
 
@@ -66,7 +67,7 @@ export default function BudgetTracker({ data, t }) {
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => setEditing(!editing)}
+          onClick={() => { haptic(); setEditing(!editing) }}
           className="px-3 py-1.5 rounded-lg text-xs font-medium border border-[var(--color-outline)] bg-[var(--color-surface)] text-[var(--color-ink)]/70 hover:bg-[var(--color-surface-dim)] transition-colors cursor-pointer"
           aria-label={t('Set Budget')}
         >
@@ -96,7 +97,7 @@ export default function BudgetTracker({ data, t }) {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={handleSave}
+            onClick={() => { haptic(); handleSave() }}
             className="px-4 py-2 rounded-lg text-sm font-medium bg-[var(--color-ink)] text-[var(--color-base)] cursor-pointer"
           >
             {t('Save')}

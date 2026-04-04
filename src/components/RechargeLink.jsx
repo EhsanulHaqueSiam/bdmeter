@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { haptic } from '../utils/haptic'
 
 const PROVIDERS = [
   { name: 'bKash', url: 'https://www.bkash.com/', color: '#E2136E' },
@@ -32,7 +33,7 @@ export default function RechargeLink({ meterNo, t }) {
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        onClick={() => setOpen(!open)}
+        onClick={() => { haptic(); setOpen(!open) }}
         className="px-4 py-2 rounded-xl font-medium text-sm border border-[var(--color-success)] bg-green-50 text-green-700 hover:bg-green-100 transition-colors cursor-pointer whitespace-nowrap flex items-center gap-2"
         aria-label={t('Recharge Now')}
       >
@@ -52,7 +53,7 @@ export default function RechargeLink({ meterNo, t }) {
           >
             {/* Copy meter number */}
             <button
-              onClick={copyMeter}
+              onClick={() => { haptic(); copyMeter() }}
               className="w-full px-4 py-3 text-left text-sm font-medium text-[var(--color-ink)] hover:bg-[var(--color-surface-dim)] transition-colors cursor-pointer flex items-center justify-between border-b border-[var(--color-outline)]"
             >
               <span className="font-mono text-xs">{meterNo}</span>
@@ -67,8 +68,8 @@ export default function RechargeLink({ meterNo, t }) {
                 href={p.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full px-4 py-3 text-left text-sm font-medium text-[var(--color-ink)] hover:bg-[var(--color-surface-dim)] transition-colors cursor-pointer flex items-center gap-3 border-b border-[var(--color-outline)] last:border-0"
-                onClick={() => setOpen(false)}
+                className="w-full px-4 py-3 text-left text-sm font-medium text-[var(--color-ink)] hover:bg-[var(--color-surface-dim)] hover:translate-x-0.5 transition-all cursor-pointer flex items-center gap-3 border-b border-[var(--color-outline)] last:border-0"
+                onClick={() => { haptic(); setOpen(false) }}
               >
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
                 {p.name}
