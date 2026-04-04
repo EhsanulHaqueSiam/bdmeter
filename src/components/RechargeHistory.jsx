@@ -35,6 +35,7 @@ function CopyButton({ text }) {
       whileTap={{ scale: 0.92 }}
       className="ml-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-[var(--color-outline)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-dim)] text-[var(--color-ink)] text-xs font-medium transition-colors cursor-pointer"
       title="Copy Token"
+      aria-label="Copy token number"
     >
       <AnimatePresence mode="wait">
         <motion.span
@@ -69,9 +70,48 @@ function formatKwh(value) {
 
 export default function RechargeHistory({ rechargeHistory, provider, t }) {
   const [expanded, setExpanded] = useState(false)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [amountFilter, setAmountFilter] = useState('all')
+  const [showFilters, setShowFilters] = useState(false)
   const isDesco = provider === 'desco'
-  const visible = expanded ? rechargeHistory : rechargeHistory.slice(0, 10)
   const lastIsSuccess = ['Success', 'Successful'].includes(rechargeHistory[0]?.status)
+
+  // Apply filters
+  let filtered = rechargeHistory
+
+  // Search filter
+  if (search.trim()) {
+    const q = search.toLowerCase()
+    filtered = filtered.filter(r =>
+      (r.tokenNo && String(r.tokenNo).toLowerCase().includes(q)) ||
+      (r.date && r.date.toLowerCase().includes(q))
+    )
+  }
+
+  // Status filter
+  if (statusFilter !== 'all') {
+    if (isDesco) {
+      filtered = filtered.filter(r => r.status === 'Successful')
+    } else {
+      if (statusFilter === 'auto') {
+        filtered = filtered.filter(r => r.status === 'Success')
+      } else if (statusFilter === 'pin') {
+        filtered = filtered.filter(r => r.status !== 'Success')
+      }
+    }
+  }
+
+  // Amount filter
+  if (amountFilter === '<500') {
+    filtered = filtered.filter(r => r.rechargeAmount < 500)
+  } else if (amountFilter === '500-1000') {
+    filtered = filtered.filter(r => r.rechargeAmount >= 500 && r.rechargeAmount <= 1000)
+  } else if (amountFilter === '>1000') {
+    filtered = filtered.filter(r => r.rechargeAmount > 1000)
+  }
+
+  const visible = expanded ? filtered : filtered.slice(0, 10)
 
   return (
     <motion.div
@@ -83,30 +123,128 @@ export default function RechargeHistory({ rechargeHistory, provider, t }) {
       <div className="px-6 py-6 border-b border-[var(--color-outline)] flex items-end justify-between">
         <div>
           <h3 className="text-lg font-semibold text-[var(--color-ink)] tracking-tight">{t('History')}</h3>
-          <p className="text-sm text-[var(--color-ink)]/70 mt-1">{rechargeHistory.length} {t('Transactions')}</p>
+          <p className="text-sm text-[var(--color-ink)]/70 mt-1">
+            {filtered.length !== rechargeHistory.length
+              ? `${filtered.length} / ${rechargeHistory.length}`
+              : rechargeHistory.length
+            } {t('Transactions')}
+          </p>
         </div>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
-          className="flex items-center"
-        >
-          <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${
-            lastIsSuccess
-              ? 'bg-green-50 text-green-700 border-green-200'
-              : 'bg-amber-50 text-amber-700 border-amber-200'
-          }`}>
-            <motion.span
-              animate={{ scale: [1, 1.3, 1] }}
-              transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-              className={`w-2 h-2 rounded-full ${
-                lastIsSuccess ? 'bg-green-500' : 'bg-amber-500'
-              }`}
-            />
-            Last: {isDesco ? (rechargeHistory[0]?.status || 'Unknown') : (lastIsSuccess ? 'Auto' : 'PIN')}
-          </span>
-        </motion.div>
+        <div className="flex items-center gap-2">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowFilters(!showFilters)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium border cursor-pointer transition-colors ${
+              showFilters || search || statusFilter !== 'all' || amountFilter !== 'all'
+                ? 'border-[var(--color-nesco)] bg-blue-50 text-[var(--color-nesco)]'
+                : 'border-[var(--color-outline)] bg-[var(--color-surface)] text-[var(--color-ink)]/70 hover:bg-[var(--color-surface-dim)]'
+            }`}
+            aria-label="Toggle search and filters"
+            aria-expanded={showFilters}
+          >
+            <svg className="w-3.5 h-3.5 inline mr-1" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+            </svg>
+            Filter
+          </motion.button>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            className="flex items-center"
+          >
+            <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${
+              lastIsSuccess
+                ? 'bg-green-50 text-green-700 border-green-200'
+                : 'bg-amber-50 text-amber-700 border-amber-200'
+            }`}>
+              <motion.span
+                animate={{ scale: [1, 1.3, 1] }}
+                transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                className={`w-2 h-2 rounded-full ${
+                  lastIsSuccess ? 'bg-green-500' : 'bg-amber-500'
+                }`}
+              />
+              Last: {isDesco ? (rechargeHistory[0]?.status || 'Unknown') : (lastIsSuccess ? 'Auto' : 'PIN')}
+            </span>
+          </motion.div>
+        </div>
       </div>
+
+      {/* Search and Filter bar */}
+      <AnimatePresence>
+        {showFilters && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25 }}
+            className="overflow-hidden border-b border-[var(--color-outline)]"
+          >
+            <div className="px-6 py-4 flex flex-wrap items-center gap-3">
+              {/* Search input */}
+              <div className="relative flex-1 min-w-[200px]">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-ink)]/30" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t('Search token or date...')}
+                  className="w-full h-9 pl-9 pr-3 text-sm text-[var(--color-ink)] bg-[var(--color-surface-dim)]/50 border border-[var(--color-outline)] rounded-lg outline-none focus:ring-2 focus:ring-[var(--color-nesco)]/20 transition-all placeholder:text-[var(--color-ink)]/30"
+                  aria-label={t('Search token or date...')}
+                />
+              </div>
+
+              {/* Status filter */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-medium text-[var(--color-ink)]/40 uppercase">Status:</span>
+                {(isDesco
+                  ? [{ key: 'all', label: t('All') }, { key: 'successful', label: t('Successful') }]
+                  : [{ key: 'all', label: t('All') }, { key: 'auto', label: t('Auto') }, { key: 'pin', label: t('PIN') }]
+                ).map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => setStatusFilter(opt.key)}
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium cursor-pointer transition-colors ${
+                      statusFilter === opt.key
+                        ? 'bg-[var(--color-ink)] text-[var(--color-base)]'
+                        : 'bg-[var(--color-surface-dim)] text-[var(--color-ink)]/60 hover:bg-[var(--color-outline)]'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Amount filter */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-medium text-[var(--color-ink)]/40 uppercase">{t('Amount')}:</span>
+                {[
+                  { key: 'all', label: t('All') },
+                  { key: '<500', label: '<500' },
+                  { key: '500-1000', label: '500-1K' },
+                  { key: '>1000', label: '>1K' },
+                ].map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => setAmountFilter(opt.key)}
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium cursor-pointer transition-colors ${
+                      amountFilter === opt.key
+                        ? 'bg-[var(--color-ink)] text-[var(--color-base)]'
+                        : 'bg-[var(--color-surface-dim)] text-[var(--color-ink)]/60 hover:bg-[var(--color-outline)]'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="overflow-x-auto">
         <table className="min-w-[1200px] w-full text-sm text-left whitespace-nowrap">
@@ -165,8 +303,14 @@ export default function RechargeHistory({ rechargeHistory, provider, t }) {
         </table>
       </div>
 
+      {filtered.length === 0 && (
+        <div className="py-8 text-center text-sm text-[var(--color-ink)]/50">
+          No matching transactions found
+        </div>
+      )}
+
       <AnimatePresence>
-        {rechargeHistory.length > 10 && (
+        {filtered.length > 10 && (
           <motion.button
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -175,7 +319,7 @@ export default function RechargeHistory({ rechargeHistory, provider, t }) {
             onClick={() => setExpanded(!expanded)}
             className="w-full py-4 text-sm font-medium text-[var(--color-ink)] transition-colors border-t border-[var(--color-outline)] cursor-pointer"
           >
-            {expanded ? 'Show Less' : `Show All ${rechargeHistory.length} Transactions`}
+            {expanded ? 'Show Less' : `Show All ${filtered.length} Transactions`}
           </motion.button>
         )}
       </AnimatePresence>

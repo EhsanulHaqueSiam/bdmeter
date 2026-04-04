@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { haptic } from '../utils/haptic'
+import QRCodeButton from './QRCode'
 
 function ShareButton({ meterNo, provider, t }) {
   const [status, setStatus] = useState('idle')
@@ -123,6 +124,7 @@ export default function CustomerInfo({ data, meterNo, onReset, isSaved, onSave, 
               whileTap={{ scale: 0.95 }}
               onClick={() => { haptic(); onSave() }}
               className="px-4 py-2 rounded-xl font-medium text-sm border border-[var(--color-success)] bg-green-50 text-green-700 hover:bg-green-100 transition-colors cursor-pointer whitespace-nowrap flex items-center gap-2"
+              aria-label={t('Save Meter')}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
@@ -131,6 +133,7 @@ export default function CustomerInfo({ data, meterNo, onReset, isSaved, onSave, 
             </motion.button>
           )}
           <ShareButton meterNo={meterNo} provider={data.provider} t={t} />
+          <QRCodeButton meterNo={meterNo} provider={data.provider} t={t} />
           <motion.button
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}

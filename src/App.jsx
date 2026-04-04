@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import MeterInput from './components/MeterInput'
 import PullToRefresh from './components/PullToRefresh'
+import DataManager from './components/DataManager'
+import OnboardingTour from './components/OnboardingTour'
 import useMeters from './hooks/useMeters'
 import useLanguage from './hooks/useLanguage'
 
@@ -30,6 +32,47 @@ function applyThemeClass(pref) {
   document.documentElement.classList.toggle('dark', isDark)
 }
 
+// --- Low balance notification ---
+const notifiedMetersThisSession = new Set()
+
+function checkLowBalance(data, meterNo) {
+  if (!data || !meterNo) return
+  const key = `${data.provider || 'nesco'}:${meterNo}`
+  if (notifiedMetersThisSession.has(key)) return
+
+  let threshold = 200
+  try {
+    const stored = localStorage.getItem('balance_threshold')
+    if (stored) threshold = parseFloat(stored) || 200
+  } catch {}
+
+  const balance = data.customerInfo?.balance
+    ? parseFloat(data.customerInfo.balance.replace(/[^\d.-]/g, ''))
+    : data.monthlyUsage?.[0]?.endBalance || 0
+
+  if (balance >= threshold) return
+  notifiedMetersThisSession.add(key)
+
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try {
+      new Notification('Low Balance Alert', {
+        body: `Meter ${meterNo} balance is ৳${balance.toFixed(2)}. Consider recharging soon.`,
+        icon: '/icon-192.png',
+        tag: `low-balance-${key}`,
+      })
+    } catch {}
+  }
+}
+
+function requestNotificationPermission() {
+  if (!('Notification' in window)) return
+  if (Notification.permission === 'default') {
+    try {
+      Notification.requestPermission()
+    } catch {}
+  }
+}
+
 function App() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -39,6 +82,7 @@ function App() {
   const { meters, addMeter, removeMeter, setPrimary, getPrimary } = useMeters()
   const { lang, setLang, t } = useLanguage()
   const requestRef = useRef(0)
+  const notifRequested = useRef(false)
 
   // Dark mode state
   const [theme, setThemeState] = useState(getInitialTheme)
@@ -81,6 +125,14 @@ function App() {
     }
   }, [])
 
+  // Request notification permission on first dashboard load
+  useEffect(() => {
+    if (data && !notifRequested.current) {
+      notifRequested.current = true
+      requestNotificationPermission()
+    }
+  }, [data])
+
   useEffect(() => {
     // Check URL params first (shared link)
     const params = new URLSearchParams(window.location.search)
@@ -114,7 +166,8 @@ function App() {
         throw new Error('No data found. Please check your number and try again.')
       }
       if (requestId !== requestRef.current) return
-      setData({ ...json, provider: prov })
+      const newData = { ...json, provider: prov }
+      setData(newData)
       setLastUpdated(new Date())
       if (save) addMeter(meter, json.customerInfo?.name || '', prov)
       // Update URL with meter info for sharing
@@ -122,6 +175,8 @@ function App() {
       url.searchParams.set('meter', meter)
       url.searchParams.set('provider', prov)
       window.history.replaceState({}, '', url)
+      // Check low balance notification
+      checkLowBalance(newData, meter)
     } catch (err) {
       if (requestId !== requestRef.current) return
       setError(err.message)
@@ -196,8 +251,14 @@ function App() {
 
   const activeProvider = data?.provider || provider
 
+  // Show onboarding only on landing page with no saved meters
+  const showOnboarding = !data && !loading && meters.length === 0
+
   return (
     <div className="min-h-screen bg-[var(--color-base)] text-[var(--color-ink)] selection:bg-[var(--color-outline)] selection:text-[var(--color-ink)] font-sans antialiased flex flex-col">
+      {/* Onboarding tour */}
+      {showOnboarding && <OnboardingTour t={t} />}
+
       {/* Offline banner */}
       <AnimatePresence>
         {!isOnline && (
@@ -207,6 +268,8 @@ function App() {
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3 }}
             className="bg-amber-500 text-white text-center text-xs font-medium py-1.5 px-4 overflow-hidden"
+            role="alert"
+            aria-live="polite"
           >
             {t("You're offline — showing cached data")}
           </motion.div>
@@ -217,16 +280,20 @@ function App() {
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="sticky top-0 z-50 bg-[var(--color-base)]/80 backdrop-blur-md border-b border-[var(--color-outline)]"
+        className="sticky top-0 z-50 bg-[var(--color-base)]/80 backdrop-blur-md border-b border-[var(--color-outline)] print:hidden"
       >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <button onClick={goHome} className="flex items-center gap-3 cursor-pointer group outline-none rounded-lg focus-visible:ring-2 ring-[var(--color-outline)]">
+        <nav className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between" aria-label="Main navigation">
+          <button
+            onClick={goHome}
+            className="flex items-center gap-3 cursor-pointer group outline-none rounded-lg focus-visible:ring-2 ring-[var(--color-outline)]"
+            aria-label={t('Go home')}
+          >
             <motion.div
               whileHover={{ scale: 1.1, rotate: 5 }}
               whileTap={{ scale: 0.95 }}
               className={`w-8 h-8 flex items-center justify-center rounded-xl shadow-sm ${activeProvider === 'desco' ? 'bg-[var(--color-desco)]' : 'bg-[var(--color-nesco)]'}`}
             >
-              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
               </svg>
             </motion.div>
@@ -255,12 +322,16 @@ function App() {
               </span>
             )}
 
+            {/* Data Manager (settings gear) */}
+            <DataManager t={t} />
+
             {/* Language toggle */}
             <motion.button
               whileHover={{ scale: 1.08 }}
               whileTap={{ scale: 0.92 }}
               onClick={() => setLang(lang === 'en' ? 'bn' : 'en')}
               className="w-8 h-8 flex items-center justify-center rounded-lg border border-[var(--color-outline)] bg-[var(--color-surface)] text-[var(--color-ink)] text-xs font-bold cursor-pointer hover:bg-[var(--color-surface-dim)] transition-colors"
+              aria-label={t('Toggle language')}
               title={lang === 'en' ? 'Switch to Bengali' : 'Switch to English'}
             >
               {lang === 'en' ? 'বা' : 'EN'}
@@ -272,18 +343,19 @@ function App() {
               whileTap={{ scale: 0.92 }}
               onClick={cycleTheme}
               className="w-8 h-8 flex items-center justify-center rounded-lg border border-[var(--color-outline)] bg-[var(--color-surface)] text-[var(--color-ink)] cursor-pointer hover:bg-[var(--color-surface-dim)] transition-colors"
+              aria-label={t('Toggle theme')}
               title={`Theme: ${theme}`}
             >
               {theme === 'light' ? (
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
                 </svg>
               ) : theme === 'dark' ? (
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
                 </svg>
               ) : (
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25A2.25 2.25 0 015.25 3h13.5A2.25 2.25 0 0121 5.25z" />
                 </svg>
               )}
@@ -303,13 +375,14 @@ function App() {
                     animate={{ scale: [1, 1.4, 1] }}
                     transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
                     className="w-1.5 h-1.5 rounded-full bg-[var(--color-success)]"
+                    aria-hidden="true"
                   />
                   {meterNo}
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
-        </div>
+        </nav>
       </motion.header>
 
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12">
@@ -344,6 +417,7 @@ function App() {
                     onReset={goHome}
                     isSaved={meters.some(m => m.number === meterNo && (m.provider || 'nesco') === (data?.provider || provider))}
                     onSave={() => addMeter(meterNo, data?.customerInfo?.name || '', data?.provider || provider)}
+                    meters={meters}
                     t={t}
                   />
                 </Suspense>
@@ -357,7 +431,7 @@ function App() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.3 }}
-        className="mt-auto border-t border-[var(--color-outline)] py-12 bg-[var(--color-surface)]"
+        className="mt-auto border-t border-[var(--color-outline)] py-12 bg-[var(--color-surface)] print:hidden"
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs font-medium text-[var(--color-ink)]/40">
           <p>Data sourced directly from {activeProvider === 'desco' ? 'DESCO' : 'NESCO'}. Not an official product.</p>
@@ -379,11 +453,14 @@ function LoadingSkeleton({ provider, t }) {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4 }}
         className="text-center py-24 flex flex-col items-center justify-center gap-6 bg-[var(--color-surface)] border border-[var(--color-outline)] rounded-3xl shadow-sm"
+        role="status"
+        aria-label={t('Loading spinner')}
       >
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
           className={`w-10 h-10 border-[3px] border-[var(--color-outline)] rounded-full ${provider === 'desco' ? 'border-t-[var(--color-desco)]' : 'border-t-[var(--color-nesco)]'}`}
+          aria-hidden="true"
         />
         <motion.span
           initial={{ opacity: 0 }}
@@ -402,6 +479,7 @@ function LoadingSkeleton({ provider, t }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: i * 0.1 }}
             className="bg-[var(--color-surface)] border border-[var(--color-outline)] rounded-2xl h-32 animate-pulse"
+            aria-hidden="true"
           />
         ))}
       </div>

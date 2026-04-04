@@ -92,12 +92,14 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
               onChange={(e) => setMeter(e.target.value.replace(/\D/g, '').slice(0, maxLen))}
               className="w-full h-16 md:h-20 px-6 font-mono text-xl md:text-2xl font-semibold text-[var(--color-ink)] bg-transparent outline-none placeholder:text-[var(--color-ink)]/30 placeholder:font-sans placeholder:font-medium placeholder:text-base md:placeholder:text-lg"
               autoFocus={meters.length === 0}
+              aria-label={t('Submit meter number')}
             />
             <motion.button
               type="submit"
               disabled={!isValid}
               whileHover={isValid ? { scale: 1.08 } : {}}
               whileTap={isValid ? { scale: 0.92 } : {}}
+              aria-label={t('Submit meter number')}
               className={`absolute right-3 w-12 h-12 md:w-14 md:h-14 flex items-center justify-center rounded-xl transition-all duration-300 ${
                 isValid
                   ? (provider === 'desco' ? 'bg-[var(--color-desco)] text-white hover:opacity-90' : 'bg-[var(--color-nesco)] text-white hover:opacity-90')
@@ -135,6 +137,8 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
               className="max-w-lg mx-auto mt-4 px-6 py-4 bg-red-50 text-red-600 rounded-xl border border-red-100 text-sm font-medium"
+              role="alert"
+              aria-live="polite"
             >
               {error}
             </motion.div>
