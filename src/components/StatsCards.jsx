@@ -33,6 +33,7 @@ export default function StatsCards({ data }) {
       labelBn: 'সর্বশেষ রিচার্জ',
       value: lastRecharge ? `৳${lastRecharge.rechargeAmount}` : 'N/A',
       sub: lastRecharge ? `${lastRecharge.date} via ${lastRecharge.medium}` : '',
+      badge: lastRecharge ? lastRecharge.status : null,
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
@@ -78,6 +79,16 @@ export default function StatsCards({ data }) {
             <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center text-white shadow-lg`}>
               {card.icon}
             </div>
+            {card.badge && (
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold ${
+                card.badge === 'Success'
+                  ? 'bg-emerald-50 text-emerald-600'
+                  : 'bg-amber-50 text-amber-600'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${card.badge === 'Success' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                {card.badge === 'Success' ? 'Auto-applied' : 'Enter PIN'}
+              </span>
+            )}
           </div>
           <div className="text-2xl font-bold text-slate-900 tracking-tight">{card.value}</div>
           <div className="text-xs font-semibold text-slate-500 mt-0.5">{card.label}</div>
