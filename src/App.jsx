@@ -22,6 +22,15 @@ function App() {
   const requestRef = useRef(0)
 
   useEffect(() => {
+    // Check URL params first (shared link)
+    const params = new URLSearchParams(window.location.search)
+    const urlMeter = params.get('meter')
+    const urlProvider = params.get('provider')
+    if (urlMeter && /^\d{8,12}$/.test(urlMeter)) {
+      fetchData(urlMeter, urlProvider === 'desco' ? 'desco' : 'nesco')
+      return
+    }
+    // Otherwise load primary meter
     const primary = getPrimary()
     if (primary && !data && !loading) {
       fetchData(primary.number, primary.provider || 'nesco')
@@ -47,6 +56,11 @@ function App() {
       if (requestId !== requestRef.current) return
       setData({ ...json, provider: prov })
       addMeter(meter, json.customerInfo?.name || '', prov)
+      // Update URL with meter info for sharing
+      const url = new URL(window.location)
+      url.searchParams.set('meter', meter)
+      url.searchParams.set('provider', prov)
+      window.history.replaceState({}, '', url)
     } catch (err) {
       if (requestId !== requestRef.current) return
       setError(err.message)
@@ -68,6 +82,8 @@ function App() {
     setData(null)
     setError(null)
     setMeterNo('')
+    // Clear URL params
+    window.history.replaceState({}, '', window.location.pathname)
   }
 
   const activeProvider = data?.provider || provider

@@ -1,4 +1,81 @@
-import { motion } from 'framer-motion'
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+
+function ShareButton({ meterNo, provider }) {
+  const [status, setStatus] = useState('idle')
+
+  const handleShare = async () => {
+    const url = new URL(window.location.origin)
+    url.searchParams.set('meter', meterNo)
+    url.searchParams.set('provider', provider || 'nesco')
+    const shareUrl = url.toString()
+
+    // Try native share first (mobile)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${(provider || 'nesco').toUpperCase()} Meter — ${meterNo}`,
+          text: `Check prepaid meter ${meterNo} on BD Meter Dashboard`,
+          url: shareUrl,
+        })
+        setStatus('shared')
+        setTimeout(() => setStatus('idle'), 2000)
+        return
+      } catch (e) {
+        if (e.name === 'AbortError') return
+      }
+    }
+
+    // Fallback: copy to clipboard
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setStatus('copied')
+    } catch {
+      // Last resort fallback
+      const el = document.createElement('textarea')
+      el.value = shareUrl
+      el.setAttribute('readonly', '')
+      el.style.position = 'absolute'
+      el.style.left = '-9999px'
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
+      setStatus('copied')
+    }
+    setTimeout(() => setStatus('idle'), 2000)
+  }
+
+  return (
+    <motion.button
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.3, delay: 0.25 }}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      onClick={handleShare}
+      className="px-4 py-2 rounded-xl font-medium text-sm border border-[var(--color-outline)] bg-white text-[var(--color-ink)] hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap flex items-center gap-2"
+    >
+      <AnimatePresence mode="wait">
+        {status === 'idle' ? (
+          <motion.span key="share" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
+            </svg>
+            Share
+          </motion.span>
+        ) : (
+          <motion.span key="done" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2 text-[var(--color-success)]">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+            {status === 'shared' ? 'Shared' : 'Link Copied'}
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </motion.button>
+  )
+}
 
 export default function CustomerInfo({ data, meterNo, onReset }) {
   const { customerInfo } = data
@@ -34,17 +111,20 @@ export default function CustomerInfo({ data, meterNo, onReset }) {
             {customerInfo?.address || 'Nesco Prepaid Customer'}
           </p>
         </motion.div>
-        <motion.button
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={onReset}
-          className="px-4 py-2 rounded-xl font-medium text-sm bg-[var(--color-ink)] text-white hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap"
-        >
-          Change Meter
-        </motion.button>
+        <div className="flex items-center gap-3">
+          <ShareButton meterNo={meterNo} provider={data.provider} />
+          <motion.button
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={onReset}
+            className="px-4 py-2 rounded-xl font-medium text-sm bg-[var(--color-ink)] text-white hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap"
+          >
+            Change Meter
+          </motion.button>
+        </div>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-px bg-[var(--color-outline)]">
         {fields.map((f, i) => (
