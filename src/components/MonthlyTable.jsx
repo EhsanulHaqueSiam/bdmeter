@@ -16,6 +16,12 @@ function formatMoney(value, { decimals = 0, zeroAsDash = false } = {}) {
   })}`
 }
 
+function formatDecimal(value, decimals = 2) {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return '-'
+  return n.toFixed(decimals)
+}
+
 function formatMonthLabel(row) {
   const month = MONTH_MAP[row.month] || row.month || '-'
   const yy = row.year ? String(row.year).slice(-2) : '--'
@@ -128,7 +134,9 @@ export default function MonthlyTable({ monthlyUsage, provider, t }) {
                 <td className="px-3 py-3 text-right font-medium text-[var(--color-ink)]">{formatMoney(m.totalRecharge, { zeroAsDash: true })}</td>
                 <td className="px-3 py-3 text-right text-[var(--color-ink)]/60">{formatMoney(m.usedElectricity)}</td>
                 <td className="px-3 py-3 text-right">
-                  <span className="px-2 py-1 bg-[var(--color-surface-dim)] text-[var(--color-ink)] rounded-md text-xs font-medium">{m.usedKwh}</span>
+                  <span className="px-2 py-1 bg-[var(--color-surface-dim)] text-[var(--color-ink)] rounded-md text-xs font-medium">
+                    {formatDecimal(m.usedKwh, 2)}
+                  </span>
                 </td>
                 <td className="px-3 py-3 text-right text-green-600">
                   {m.rebate < 0 ? `৳${Math.abs(m.rebate).toFixed(2)}` : '-'}
@@ -136,8 +144,8 @@ export default function MonthlyTable({ monthlyUsage, provider, t }) {
                 <td className="px-3 py-3 text-right text-[var(--color-ink-muted)]">{formatMoney(m.demandCharge, { zeroAsDash: true })}</td>
                 <td className="px-3 py-3 text-right text-[var(--color-ink-muted)]">{formatMoney(m.meterRent, { zeroAsDash: true })}</td>
                 <td className="px-3 py-3 text-right text-[var(--color-ink-muted)]">{formatMoney(m.vat, { decimals: 2, zeroAsDash: true })}</td>
-                <td className="px-3 py-3 text-right text-[var(--color-ink-muted)]">{m.pfcCharge > 0 ? `৳${m.pfcCharge}` : '-'}</td>
-                <td className="px-3 py-3 text-right text-[var(--color-ink-muted)]">{m.paidDues > 0 ? `৳${m.paidDues}` : '-'}</td>
+                <td className="px-3 py-3 text-right text-[var(--color-ink-muted)]">{formatMoney(m.pfcCharge, { decimals: 2, zeroAsDash: true })}</td>
+                <td className="px-3 py-3 text-right text-[var(--color-ink-muted)]">{formatMoney(m.paidDues, { decimals: 2, zeroAsDash: true })}</td>
                 <td className="px-3 py-3 text-right text-[var(--color-ink)]/70">{formatMoney(m.totalUsage, { zeroAsDash: true })}</td>
                 <td className="px-3 py-3 text-right">
                   <span className={`px-2 py-1 rounded-md text-xs font-medium ${m.endBalance >= 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>

@@ -102,7 +102,7 @@ export default function CustomerInfo({ data, meterNo, onReset, isSaved, onSave, 
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-outline)] shadow-sm overflow-hidden"
+      className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-outline)] shadow-sm"
     >
       <div className="px-6 py-6 border-b border-[var(--color-outline)] flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <motion.div
@@ -152,7 +152,7 @@ export default function CustomerInfo({ data, meterNo, onReset, isSaved, onSave, 
           </motion.button>
         </div>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-px bg-[var(--color-outline)]">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-px bg-[var(--color-outline)] rounded-b-2xl overflow-hidden">
         {fields.map((f, i) => (
           <motion.div
             key={i}

@@ -11,6 +11,7 @@ export default function LazySection({ children, height = 320, className = '' }) 
     const el = ref.current
     if (!el) return
 
+    const media = window.matchMedia('print')
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -24,11 +25,18 @@ export default function LazySection({ children, height = 320, className = '' }) 
     observer.observe(el)
 
     const onBeforePrint = () => setVisible(true)
+    const onPrintMediaChange = () => {
+      if (media.matches) setVisible(true)
+    }
     window.addEventListener('beforeprint', onBeforePrint)
+    media.addEventListener?.('change', onPrintMediaChange)
+    media.addListener?.(onPrintMediaChange)
 
     return () => {
       observer.disconnect()
       window.removeEventListener('beforeprint', onBeforePrint)
+      media.removeEventListener?.('change', onPrintMediaChange)
+      media.removeListener?.(onPrintMediaChange)
     }
   }, [])
 

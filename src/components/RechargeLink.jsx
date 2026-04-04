@@ -5,32 +5,50 @@ import { haptic } from '../utils/haptic'
 const PROVIDERS = [
   {
     name: 'bKash',
-    deepLink: 'bkash://',
+    deepLinks: { android: 'bkash://', ios: 'bkash://' },
     webUrl: 'https://www.bkash.com/en/products-services/pay-bill',
     color: '#E2136E',
   },
   {
     name: 'Nagad',
-    deepLink: 'nagad://',
+    deepLinks: { android: 'nagad://', ios: 'nagad://' },
     webUrl: 'https://nagad.com.bd/',
     color: '#F6921E',
   },
   {
     name: 'Rocket',
-    deepLink: 'rocket://',
+    deepLinks: { android: 'rocket://', ios: 'rocket://' },
     webUrl: 'https://www.dutchbanglabank.com/rocket/rocket.html',
     color: '#8B2F8B',
   },
   {
     name: 'Upay',
-    deepLink: 'upay://',
+    deepLinks: { android: 'upay://', ios: 'upay://' },
     webUrl: 'https://www.upaybd.com/',
     color: '#00A651',
   },
 ]
 
 function isLikelyMobile() {
-  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '')
+  const ua = navigator.userAgent || ''
+  const touchMac = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1
+  return /Android|iPhone|iPad|iPod/i.test(ua) || touchMac
+}
+
+function isAndroid() {
+  return /Android/i.test(navigator.userAgent || '')
+}
+
+function isIOS() {
+  const ua = navigator.userAgent || ''
+  const touchMac = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1
+  return /iPhone|iPad|iPod/i.test(ua) || touchMac
+}
+
+function getMobileDeepLink(provider) {
+  if (isAndroid()) return provider.deepLinks?.android || ''
+  if (isIOS()) return provider.deepLinks?.ios || ''
+  return ''
 }
 
 function appendMeterQuery(url, meterNo) {
@@ -106,6 +124,12 @@ export default function RechargeLink({ meterNo, t }) {
       return
     }
 
+    const deepLink = getMobileDeepLink(provider)
+    if (!deepLink) {
+      window.location.assign(fallbackUrl)
+      return
+    }
+
     let fallbackTimer = null
     const clearFallback = () => {
       if (fallbackTimer !== null) {
@@ -128,7 +152,7 @@ export default function RechargeLink({ meterNo, t }) {
     }, 1400)
 
     try {
-      window.location.assign(provider.deepLink)
+      window.location.assign(deepLink)
     } catch {
       clearFallback()
       window.location.assign(fallbackUrl)
@@ -156,7 +180,7 @@ export default function RechargeLink({ meterNo, t }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -5, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 top-full mt-2 w-56 bg-[var(--color-surface)] border border-[var(--color-outline)] rounded-xl shadow-lg overflow-hidden z-50"
+            className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-[min(18rem,calc(100vw-1rem))] sm:left-auto sm:right-0 sm:translate-x-0 sm:w-56 bg-[var(--color-surface)] border border-[var(--color-outline)] rounded-xl shadow-lg overflow-hidden z-[70]"
           >
             {/* Copy meter number */}
             <button

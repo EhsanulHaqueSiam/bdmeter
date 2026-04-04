@@ -18,12 +18,15 @@
         const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
         const isDark = theme === 'dark' || (theme === 'system' && prefersDark)
         document.documentElement.classList.toggle('dark', isDark)
+        document.documentElement.style.backgroundColor = isDark ? '#1a1a1a' : '#f7f6f2'
       })()
     </script>
     <style>
       html { background: #f7f6f2; }
       html.dark { background: #1a1a1a; }
-      body { background: transparent; }
+      body { background: #f7f6f2; }
+      html.dark body { background: #1a1a1a; }
+      #root { min-height: 100vh; }
     </style>
 
     <!-- PWA -->

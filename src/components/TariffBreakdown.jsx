@@ -32,13 +32,31 @@ function computeSlabBreakdown(totalKwh) {
 
 const SLAB_COLORS = ['#10b981', '#22d3ee', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444']
 
+function roundTo(value, decimals = 2) {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return 0
+  const factor = 10 ** decimals
+  return Math.round((n + Number.EPSILON) * factor) / factor
+}
+
+function formatFixed(value, decimals = 2) {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return '-'
+  return roundTo(n, decimals).toFixed(decimals)
+}
+
 export default function TariffBreakdown({ monthlyUsage, t }) {
   const latest = monthlyUsage?.[0]
   if (!latest || !latest.usedKwh || latest.usedKwh <= 0) return null
 
-  const breakdown = computeSlabBreakdown(latest.usedKwh)
-  const totalCost = breakdown.reduce((s, b) => s + b.cost, 0)
-  const totalKwh = breakdown.reduce((s, b) => s + b.kwh, 0)
+  const breakdown = computeSlabBreakdown(Number(latest.usedKwh)).map((slab) => ({
+    ...slab,
+    kwh: roundTo(slab.kwh, 3),
+    cost: roundTo(slab.cost, 2),
+  }))
+  const totalCost = roundTo(breakdown.reduce((s, b) => s + b.cost, 0), 2)
+  const totalKwh = roundTo(breakdown.reduce((s, b) => s + b.kwh, 0), 3)
+  const avgRate = totalKwh > 0 ? roundTo(totalCost / totalKwh, 2) : 0
 
   return (
     <motion.div
@@ -50,7 +68,7 @@ export default function TariffBreakdown({ monthlyUsage, t }) {
       <div className="mb-6">
         <h3 className="text-lg font-semibold text-[var(--color-ink)] tracking-tight">{t('Tariff Breakdown')}</h3>
         <p className="text-sm text-[var(--color-ink-muted)] mt-1">
-          {t('Slab-wise cost for')} {latest.usedKwh} kWh ({latest.month ? `${latest.month} ${latest.year || ''}`.trim() : t('Latest month')})
+          {t('Slab-wise cost for')} {formatFixed(latest.usedKwh, 2)} kWh ({latest.month ? `${latest.month} ${latest.year || ''}`.trim() : t('Latest month')})
         </p>
       </div>
 
@@ -68,9 +86,9 @@ export default function TariffBreakdown({ monthlyUsage, t }) {
                 transition={{ duration: 0.6, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
                 className="h-full flex items-center justify-center text-white text-[10px] font-bold"
                 style={{ backgroundColor: SLAB_COLORS[i] }}
-                title={`${slab.label}: ${slab.kwh} kWh`}
+                title={`${slab.label}: ${formatFixed(slab.kwh, 2)} kWh`}
               >
-                {pct > 10 ? `${slab.kwh}` : ''}
+                {pct > 10 ? `${formatFixed(slab.kwh, 2)}` : ''}
               </motion.div>
             )
           })}
@@ -111,15 +129,15 @@ export default function TariffBreakdown({ monthlyUsage, t }) {
                   </div>
                 </td>
                 <td className="py-2.5 text-right text-[var(--color-ink)]/60">&#2547;{slab.rate.toFixed(2)}</td>
-                <td className="py-2.5 text-right text-[var(--color-ink)]">{slab.kwh.toFixed(1)}</td>
-                <td className="py-2.5 text-right font-medium text-[var(--color-ink)]">&#2547;{slab.cost.toFixed(2)}</td>
+                <td className="py-2.5 text-right text-[var(--color-ink)]">{formatFixed(slab.kwh, 2)}</td>
+                <td className="py-2.5 text-right font-medium text-[var(--color-ink)]">&#2547;{formatFixed(slab.cost, 2)}</td>
               </motion.tr>
             ))}
             <tr className="border-t-2 border-[var(--color-outline)]">
               <td className="pt-3 font-semibold text-[var(--color-ink)]">{t('Total')}</td>
-              <td className="pt-3 text-right text-[var(--color-ink)]/60">&#2547;{(totalCost / totalKwh).toFixed(2)} avg</td>
-              <td className="pt-3 text-right font-semibold text-[var(--color-ink)]">{totalKwh.toFixed(1)}</td>
-              <td className="pt-3 text-right font-semibold text-[var(--color-ink)]">&#2547;{totalCost.toFixed(2)}</td>
+              <td className="pt-3 text-right text-[var(--color-ink)]/60">&#2547;{formatFixed(avgRate, 2)} avg</td>
+              <td className="pt-3 text-right font-semibold text-[var(--color-ink)]">{formatFixed(totalKwh, 2)}</td>
+              <td className="pt-3 text-right font-semibold text-[var(--color-ink)]">&#2547;{formatFixed(totalCost, 2)}</td>
             </tr>
           </tbody>
         </table>

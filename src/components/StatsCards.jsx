@@ -2,6 +2,12 @@ import { motion } from 'framer-motion'
 import AnimatedNumber from './AnimatedNumber'
 import Sparkline from './Sparkline'
 
+function formatFixed(value, decimals = 2) {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return '0'
+  return n.toFixed(decimals)
+}
+
 function computeForecast(data) {
   const { customerInfo, monthlyUsage, dailyConsumption, rechargeHistory } = data
 
@@ -146,8 +152,8 @@ export default function StatsCards({ data, t }) {
       numValue: latestMonth ? latestMonth.usedKwh : null,
       numPrefix: '',
       numSuffix: ' kWh',
-      numDecimals: 0,
-      value: latestMonth ? `${latestMonth.usedKwh} kWh` : 'N/A',
+      numDecimals: 2,
+      value: latestMonth ? `${formatFixed(latestMonth.usedKwh, 2)} kWh` : 'N/A',
       sub: latestMonth ? `৳${latestMonth.usedElectricity.toFixed(0)} elec cost` : '',
       change: kwhChange,
       sparkData: usageSparkData,

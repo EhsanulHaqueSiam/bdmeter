@@ -70,6 +70,17 @@ body {
 
 /* Print-friendly styles */
 @media print {
+  :root, html, html.dark {
+    color-scheme: light !important;
+    --color-canvas: #ffffff !important;
+    --color-surface: #ffffff !important;
+    --color-surface-dim: #f5f5f5 !important;
+    --color-ink: #111111 !important;
+    --color-ink-muted: #444444 !important;
+    --color-outline: #d9d9d9 !important;
+    background: #ffffff !important;
+  }
+
   /* Reset colors for print */
   body {
     background: white !important;
@@ -97,10 +108,36 @@ body {
     border: 1px solid #e0e0e0 !important;
     box-shadow: none !important;
   }
+  [class*="bg-[var(--color-surface-dim)]"] {
+    background: #f5f5f5 !important;
+  }
+  [class*="bg-[var(--color-ink)]"] {
+    background: #f0f0f0 !important;
+    border-color: #d4d4d4 !important;
+  }
+  [class*="bg-green-50"],
+  [class*="bg-amber-50"],
+  [class*="bg-red-50"],
+  [class*="bg-blue-50"],
+  [class*="bg-white"] {
+    background: #f7f7f7 !important;
+  }
 
   /* Text should be black */
-  [class*="text-[var(--color-ink)]"] {
+  [class*="text-[var(--color-ink)]"],
+  [class*="text-[var(--color-ink-muted)]"],
+  [class*="text-[var(--color-canvas)]"],
+  [class*="text-white"],
+  [class*="text-green-"],
+  [class*="text-red-"],
+  [class*="text-amber-"],
+  [class*="text-blue-"] {
     color: black !important;
+  }
+
+  .recharts-text {
+    fill: #111111 !important;
+    opacity: 1 !important;
   }
 
   /* Page breaks */

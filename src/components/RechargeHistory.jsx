@@ -3,6 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { exportRechargesAsICS } from '../utils/calendarExport'
 import { haptic } from '../utils/haptic'
 
+function isSuccessStatus(status) {
+  return ['Success', 'Successful'].includes(status)
+}
+
 function CopyButton({ text }) {
   const [status, setStatus] = useState('idle')
   const clean = String(text || '').replace(/\s/g, '')
@@ -81,7 +85,7 @@ export default function RechargeHistory({ rechargeHistory, provider, t }) {
     return window.matchMedia('print').matches
   })
   const isDesco = provider === 'desco'
-  const lastIsSuccess = ['Success', 'Successful'].includes(rechargeHistory[0]?.status)
+  const lastIsSuccess = isSuccessStatus(rechargeHistory[0]?.status)
 
   useEffect(() => {
     const media = window.matchMedia('print')
@@ -93,11 +97,13 @@ export default function RechargeHistory({ rechargeHistory, provider, t }) {
     window.addEventListener('beforeprint', onBeforePrint)
     window.addEventListener('afterprint', onAfterPrint)
     media.addEventListener?.('change', sync)
+    media.addListener?.(sync)
 
     return () => {
       window.removeEventListener('beforeprint', onBeforePrint)
       window.removeEventListener('afterprint', onAfterPrint)
       media.removeEventListener?.('change', sync)
+      media.removeListener?.(sync)
     }
   }, [])
 
@@ -116,12 +122,12 @@ export default function RechargeHistory({ rechargeHistory, provider, t }) {
   // Status filter
   if (statusFilter !== 'all') {
     if (isDesco) {
-      filtered = filtered.filter(r => r.status === 'Successful')
+      filtered = filtered.filter(r => isSuccessStatus(r.status))
     } else {
       if (statusFilter === 'auto') {
-        filtered = filtered.filter(r => r.status === 'Success')
+        filtered = filtered.filter(r => isSuccessStatus(r.status))
       } else if (statusFilter === 'pin') {
-        filtered = filtered.filter(r => r.status !== 'Success')
+        filtered = filtered.filter(r => !isSuccessStatus(r.status))
       }
     }
   }
@@ -331,11 +337,11 @@ export default function RechargeHistory({ rechargeHistory, provider, t }) {
                 </td>
                 <td className="px-6 py-4 text-center">
                   <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${
-                    ['Success', 'Successful'].includes(r.status)
+                    isSuccessStatus(r.status)
                       ? 'bg-green-50 text-green-700 border-green-200'
                       : 'bg-amber-50 text-amber-700 border-amber-200'
                   }`}>
-                    {isDesco ? (r.status || 'Unknown') : (r.status === 'Success' ? 'Auto' : 'PIN')}
+                    {isDesco ? (r.status || 'Unknown') : (isSuccessStatus(r.status) ? 'Auto' : 'PIN')}
                   </span>
                 </td>
               </motion.tr>
