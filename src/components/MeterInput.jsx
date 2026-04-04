@@ -2,9 +2,10 @@ import { useState } from 'react'
 
 export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter, onRemoveMeter, onSetPrimary, provider, onProviderChange }) {
   const [meter, setMeter] = useState('')
+  // NESCO: 8 (account) or 11 (meter). DESCO: 8-9 (account) or 11-12 (meter)
   const maxLen = provider === 'desco' ? 12 : 11
-  const minLen = provider === 'desco' ? 8 : 8
-  const isValid = meter.length >= minLen && meter.length <= maxLen && /^\d+$/.test(meter)
+  const validLengths = provider === 'desco' ? [8, 9, 11, 12] : [8, 11]
+  const isValid = /^\d+$/.test(meter) && validLengths.includes(meter.length)
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -114,7 +115,7 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
               type="text"
               inputMode="numeric"
               pattern="[0-9]*"
-              placeholder={provider === 'desco' ? 'Account or meter number' : 'Enter 8-11 digit meter number'}
+              placeholder={provider === 'desco' ? 'Account (8-9) or Meter (11-12) number' : 'Account (8 digits) or Meter (11 digits)'}
               value={meter}
               onChange={(e) => setMeter(e.target.value.replace(/\D/g, '').slice(0, maxLen))}
               className={`w-full h-14 px-5 pr-14 text-lg font-medium text-slate-900 bg-white border-2 border-slate-200 rounded-2xl outline-none transition-all duration-200 placeholder:text-slate-300 hover:border-slate-300 ${provider === 'desco' ? 'focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10' : 'focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10'}`}
@@ -123,7 +124,7 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
             <div className="absolute right-4 top-1/2 -translate-y-1/2">
               {meter.length > 0 && (
                 <span className={`text-xs font-semibold px-2 py-1 rounded-lg ${isValid ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
-                  {meter.length}/{minLen}-{maxLen}
+                  {meter.length} digits {isValid ? '✓' : ''}
                 </span>
               )}
             </div>
