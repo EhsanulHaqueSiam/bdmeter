@@ -65,16 +65,16 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
               placeholder={provider === 'desco' ? 'Account (8-9) or Meter (11-12)' : 'Account (8) or Meter (11)'}
               value={meter}
               onChange={(e) => setMeter(e.target.value.replace(/\D/g, '').slice(0, maxLen))}
-              className="w-full h-16 md:h-20 px-6 font-mono text-xl md:text-2xl font-semibold text-[var(--color-ink)] bg-transparent outline-none placeholder:text-[var(--color-ink)]/55 placeholder:font-sans placeholder:font-medium placeholder:text-base md:placeholder:text-lg"
+              className="w-full h-16 md:h-20 px-6 font-mono text-xl md:text-2xl font-semibold text-gray-900 bg-transparent outline-none placeholder:text-gray-500 placeholder:font-sans placeholder:font-medium placeholder:text-base md:placeholder:text-lg"
               autoFocus={meters.length === 0}
             />
             <button
               type="submit"
               disabled={!isValid}
-              className={`absolute right-3 w-12 h-12 md:w-14 md:h-14 flex items-center justify-center rounded-xl text-white transition-all duration-300 ${
+              className={`absolute right-3 w-12 h-12 md:w-14 md:h-14 flex items-center justify-center rounded-xl transition-all duration-300 ${
                 isValid 
-                  ? (provider === 'desco' ? 'bg-[var(--color-desco)] hover:opacity-90 hover:scale-105' : 'bg-[var(--color-nesco)] hover:opacity-90 hover:scale-105')
-                  : 'bg-[var(--color-ink)]/10 text-[var(--color-ink)]/55 cursor-not-allowed'
+                  ? (provider === 'desco' ? 'bg-[var(--color-desco)] text-white hover:opacity-90 hover:scale-105' : 'bg-[var(--color-nesco)] text-white hover:opacity-90 hover:scale-105')
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
               }`}
             >
               <svg className="w-6 h-6 md:w-7 md:h-7" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">

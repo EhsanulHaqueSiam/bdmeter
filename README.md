@@ -15,6 +15,9 @@ The UI includes recharge history, monthly usage analytics, charts, and reusable 
 ### Landing (Mobile)
 ![Landing mobile](./screenshots/landing-mobile.png)
 
+### Dashboard (Data View)
+![Dashboard top](./screenshots/dashboard-top.png)
+
 ### DESCO Input State
 ![DESCO input state](./screenshots/input-desco-desktop.png)
 
@@ -23,7 +26,8 @@ The UI includes recharge history, monthly usage analytics, charts, and reusable 
 - Provider switch: `NESCO` and `DESCO`
 - Input validation by provider-specific number lengths
 - Recharge history with PIN copy helper for failed remote recharges
-- Monthly breakdown table and usage charts (Recharts)
+- Monthly breakdown table with horizontal scroll on small screens
+- Usage charts (Recharts)
 - Local saved meter profiles with primary meter support
 - Serverless data fetch/parsing through Netlify Functions
 - Optional bot/webhook endpoints for Telegram, WhatsApp, and Discord flows
