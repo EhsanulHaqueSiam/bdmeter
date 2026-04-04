@@ -5,18 +5,20 @@
   --font-sans: 'Bricolage Grotesque', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
-  /* Editorial Tech / Brutalist Colors */
-  --color-base: #f4f4f0; /* Off white / newsprint */
-  --color-ink: #111111;  /* Almost black */
-  --color-surface: #ffffff;
-  --color-surface-dim: #e8e8e3;
+  /* Editorial / High-Utility Colors */
+  --color-base: #f7f6f2; /* Soft warm paper */
+  --color-surface: #ffffff; /* Pure white */
+  --color-surface-dim: #f0efe9; /* Subtly darker paper for cards/hover */
   
-  --color-nesco: #0055ff;
-  --color-desco: #ff4400;
+  --color-ink: #1c1b1a; /* Deep espresso black - not pure #000 */
+  --color-outline: #e6e4dc; /* Delicate borders */
+  
+  --color-nesco: #2563eb; /* Vibrant Blue */
+  --color-desco: #ea580c; /* Terracotta Orange */
 
-  --color-success: #00c853;
-  --color-warning: #ffd600;
-  --color-danger: #ff0033;
+  --color-success: #10b981; /* Emerald */
+  --color-warning: #f59e0b; /* Amber */
+  --color-danger: #ef4444; /* Rose */
 }
 
 body {
@@ -26,61 +28,45 @@ body {
   font-family: var(--font-sans);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 ::selection {
-  background: var(--color-ink);
-  color: var(--color-surface);
+  background: var(--color-outline);
+  color: var(--color-ink);
 }
 
-/* Brutalist Utilities */
-.brutal-border {
-  border: 2px solid var(--color-ink);
+/* Animations for staggered reveals */
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.brutal-border-b {
-  border-bottom: 2px solid var(--color-ink);
+.animate-reveal {
+  animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.brutal-border-r {
-  border-right: 2px solid var(--color-ink);
-}
-
-.brutal-shadow {
-  box-shadow: 4px 4px 0 0 var(--color-ink);
-  transition: transform 0.15s cubic-bezier(0, 0, 0.2, 1), box-shadow 0.15s cubic-bezier(0, 0, 0.2, 1);
-}
-
-.brutal-shadow-sm {
-  box-shadow: 2px 2px 0 0 var(--color-ink);
-}
-
-.brutal-btn {
-  border: 2px solid var(--color-ink);
-  box-shadow: 4px 4px 0 0 var(--color-ink);
-  transition: transform 0.1s cubic-bezier(0, 0, 0.2, 1), box-shadow 0.1s cubic-bezier(0, 0, 0.2, 1);
-}
-
-.brutal-btn:active:not(:disabled) {
-  transform: translate(4px, 4px);
-  box-shadow: 0px 0px 0 0 var(--color-ink);
-}
-
-.brutal-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: translate(4px, 4px);
-  box-shadow: 0px 0px 0 0 var(--color-ink);
-}
-
-.brutal-card {
-  background: var(--color-surface);
-  border: 2px solid var(--color-ink);
-  box-shadow: 6px 6px 0 0 var(--color-ink);
-}
+/* Remove brutalist utilities entirely. The components will now use Tailwind directly. */
 
 /* Ensure recharts fits the aesthetic */
 .recharts-tooltip-cursor {
   fill: var(--color-surface-dim);
   opacity: 0.5;
+}
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: var(--color-outline);
+  stroke-dasharray: 3 3;
+}
+.recharts-text {
+  fill: var(--color-ink) !important;
+  opacity: 0.6;
+  font-family: var(--font-mono);
+  font-size: 11px;
 }

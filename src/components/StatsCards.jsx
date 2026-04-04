@@ -28,58 +28,54 @@ export default function StatsCards({ data }) {
 
   const cards = [
     {
-      label: 'BALANCE',
+      label: 'Balance',
       value: `৳${balance.toFixed(2)}`,
-      sub: customerInfo?.balanceTime ? `AS OF ${customerInfo.balanceTime}` : 'LATEST',
-      bg: 'bg-[var(--color-success)]',
-      text: 'text-[var(--color-ink)]'
+      sub: customerInfo?.balanceTime ? `As of ${customerInfo.balanceTime}` : 'Latest',
     },
     {
-      label: 'LAST RECHARGE',
+      label: 'Last Recharge',
       value: lastRecharge ? `৳${lastRecharge.rechargeAmount}` : 'N/A',
-      sub: lastRecharge ? `${lastRecharge.date.toUpperCase()}` : '',
+      sub: lastRecharge ? `${lastRecharge.date}` : '',
       badge: lastRecharge ? lastRecharge.status : null,
-      bg: 'bg-[var(--color-nesco)]',
-      text: 'text-white'
     },
     {
-      label: 'MONTH USAGE',
+      label: 'Month Usage',
       value: latestMonth ? `${latestMonth.usedKwh} kWh` : 'N/A',
-      sub: latestMonth ? `৳${latestMonth.usedElectricity.toFixed(0)} ELEC COST` : '',
+      sub: latestMonth ? `৳${latestMonth.usedElectricity.toFixed(0)} elec cost` : '',
       change: kwhChange,
-      bg: 'bg-[var(--color-warning)]',
-      text: 'text-[var(--color-ink)]'
     },
     {
-      label: 'COST / KWH',
+      label: 'Cost / kWh',
       value: costPerKwh > 0 ? `৳${costPerKwh.toFixed(2)}` : 'N/A',
-      sub: `AVG SPEND ৳${avgMonthly.toFixed(0)}`,
+      sub: `Avg spend ৳${avgMonthly.toFixed(0)}`,
       change: spendChange,
-      bg: 'bg-[var(--color-surface)]',
-      text: 'text-[var(--color-ink)]'
     },
   ]
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
       {cards.map((card, i) => (
-        <div key={i} className={`brutal-card ${card.bg} ${card.text} flex flex-col justify-between p-6 hover:-translate-y-1 transition-transform`}>
+        <div key={i} className="bg-white rounded-2xl border border-[var(--color-outline)] shadow-sm p-6 flex flex-col justify-between">
           <div className="flex items-start justify-between mb-8">
-            <div className="font-mono text-[10px] font-bold uppercase tracking-widest px-2 py-1 brutal-border bg-[var(--color-surface)] text-[var(--color-ink)]">
+            <div className="text-sm font-medium text-[var(--color-ink)]/70">
               {card.label}
             </div>
             
             <div className="flex flex-col items-end gap-2">
               {card.badge && (
-                <span className={`inline-flex items-center gap-1.5 px-2 py-1 brutal-border text-[10px] font-bold font-mono uppercase bg-[var(--color-surface)] ${
-                  card.badge === 'Success' ? 'text-[var(--color-success)]' : 'text-[var(--color-warning)]'
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${
+                  card.badge === 'Success' 
+                    ? 'bg-green-50 text-green-700 border-green-200' 
+                    : 'bg-amber-50 text-amber-700 border-amber-200'
                 }`}>
-                  {card.badge === 'Success' ? 'AUTO' : 'PIN REQ'}
+                  {card.badge === 'Success' ? 'Auto' : 'PIN Req'}
                 </span>
               )}
               {card.change !== undefined && card.change !== null && (
-                <span className={`inline-flex items-center gap-0.5 px-2 py-1 brutal-border text-[10px] font-bold font-mono bg-[var(--color-surface)] ${
-                  card.change <= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${
+                  card.change <= 0 
+                    ? 'bg-green-50 text-green-700 border-green-200' 
+                    : 'bg-red-50 text-red-700 border-red-200'
                 }`}>
                   {card.change <= 0 ? '↓' : '↑'} {Math.abs(card.change).toFixed(0)}%
                 </span>
@@ -88,8 +84,8 @@ export default function StatsCards({ data }) {
           </div>
           
           <div>
-            <div className="font-mono text-3xl xl:text-4xl font-bold tracking-tighter mb-2">{card.value}</div>
-            <div className="font-mono text-[10px] font-bold uppercase tracking-widest opacity-80">{card.sub}</div>
+            <div className="text-3xl font-semibold text-[var(--color-ink)] mb-1 tracking-tight">{card.value}</div>
+            <div className="text-sm text-[var(--color-ink)]/70">{card.sub}</div>
           </div>
         </div>
       ))}

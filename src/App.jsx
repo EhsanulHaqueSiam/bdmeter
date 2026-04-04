@@ -65,51 +65,29 @@ function App() {
   const activeProvider = data?.provider || provider
 
   return (
-    <div className="min-h-screen bg-[var(--color-base)] text-[var(--color-ink)] selection:bg-[var(--color-ink)] selection:text-white">
-      <header className="sticky top-0 z-50 bg-[var(--color-base)] brutal-border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <button onClick={goHome} className="flex items-center gap-3 cursor-pointer group">
-            <div className={`w-8 h-8 flex items-center justify-center brutal-border brutal-shadow-sm ${activeProvider === 'desco' ? 'bg-[var(--color-desco)]' : 'bg-[var(--color-nesco)]'}`}>
-              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
-                <path strokeLinecap="square" strokeLinejoin="miter" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+    <div className="min-h-screen bg-[var(--color-base)] text-[var(--color-ink)] selection:bg-[var(--color-outline)] selection:text-[var(--color-ink)] font-sans antialiased flex flex-col">
+      <header className="sticky top-0 z-50 bg-[var(--color-base)]/80 backdrop-blur-md border-b border-[var(--color-outline)]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <button onClick={goHome} className="flex items-center gap-3 cursor-pointer group outline-none rounded-lg focus-visible:ring-2 ring-[var(--color-outline)]">
+            <div className={`w-8 h-8 flex items-center justify-center rounded-xl shadow-sm transition-transform group-hover:scale-105 ${activeProvider === 'desco' ? 'bg-[var(--color-desco)]' : 'bg-[var(--color-nesco)]'}`}>
+              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
               </svg>
             </div>
             <div className="text-left leading-none">
-              <h1 className="text-xl font-black uppercase tracking-tight">
+              <h1 className="text-lg font-bold tracking-tight text-[var(--color-ink)]">
                 {activeProvider === 'desco' ? 'DESCO' : 'NESCO'}
               </h1>
-              <p className="text-[10px] font-mono uppercase tracking-widest font-bold opacity-70">Grid Watch</p>
+              <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--color-ink)]/50">Grid Watch</p>
             </div>
           </button>
 
           {meters.length > 0 && (
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               {data && (
-                <div className="hidden sm:flex items-center gap-2 font-mono text-xs font-bold bg-[var(--color-surface)] px-2 py-1 brutal-border brutal-shadow-sm">
-                  <span className="w-2 h-2 bg-[var(--color-success)] brutal-border" />
+                <div className="hidden sm:flex items-center gap-2 font-mono text-xs font-medium bg-white px-3 py-1.5 rounded-full border border-[var(--color-outline)] shadow-sm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-success)]" />
                   {meterNo}
-                </div>
-              )}
-              {meters.length > 1 && (
-                <div className="flex items-center gap-2">
-                  {meters.map((m) => (
-                    <button
-                      key={`${m.provider || 'nesco'}:${m.number}`}
-                      onClick={() => switchMeter(m.number, m.provider || 'nesco')}
-                      className={`relative px-3 py-1 font-mono text-[10px] font-bold uppercase transition-all cursor-pointer brutal-border brutal-shadow-sm ${
-                        m.number === meterNo && (m.provider || 'nesco') === activeProvider
-                          ? 'bg-[var(--color-ink)] text-[var(--color-base)]'
-                          : 'bg-[var(--color-surface)] text-[var(--color-ink)] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-none'
-                      }`}
-                      title={`${m.name || m.number} (${(m.provider || 'nesco').toUpperCase()})`}
-                    >
-                      {m.primary && (
-                        <span className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-[var(--color-warning)] brutal-border" />
-                      )}
-                      <span className="hidden sm:inline">{m.name ? m.name.split(' ')[0] : m.number}</span>
-                      <span className="sm:hidden">{m.number.slice(-4)}</span>
-                    </button>
-                  ))}
                 </div>
               )}
             </div>
@@ -117,7 +95,7 @@ function App() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         {!data && !loading && (
           <MeterInput
             onSubmit={fetchData}
@@ -133,19 +111,21 @@ function App() {
         {loading && <LoadingSkeleton provider={provider} />}
         {data && (
           <Suspense fallback={<LoadingSkeleton provider={provider} />}>
-            <Dashboard
-              data={data}
-              meterNo={meterNo}
-              onReset={goHome}
-            />
+            <div className="animate-reveal">
+              <Dashboard
+                data={data}
+                meterNo={meterNo}
+                onReset={goHome}
+              />
+            </div>
           </Suspense>
         )}
       </main>
 
-      <footer className="border-t-2 border-[var(--color-ink)] py-8 mt-12 bg-[var(--color-surface)]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center font-mono text-[10px] font-bold uppercase tracking-widest">
-          <p>DATA SOURCED FROM {activeProvider === 'desco' ? 'DESCO' : 'NESCO'}. NOT AN OFFICIAL PRODUCT.</p>
-          <p className="mt-2 opacity-50">SYSTEM DESIGNED FOR CLARITY AND SPEED.</p>
+      <footer className="mt-auto border-t border-[var(--color-outline)] py-12 bg-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs font-medium text-[var(--color-ink)]/40">
+          <p>Data sourced directly from {activeProvider === 'desco' ? 'DESCO' : 'NESCO'}. Not an official product.</p>
+          <p className="mt-2">Designed for clarity and utility.</p>
         </div>
       </footer>
     </div>
@@ -154,17 +134,16 @@ function App() {
 
 function LoadingSkeleton({ provider }) {
   return (
-    <div className="space-y-8 animate-pulse max-w-4xl mx-auto">
-      <div className="text-center py-20 flex flex-col items-center justify-center gap-6 brutal-card p-12">
-        <div className={`w-12 h-12 brutal-border border-4 border-t-transparent rounded-full animate-spin ${provider === 'desco' ? 'border-[var(--color-desco)]' : 'border-[var(--color-nesco)]'}`} />
-        <span className="font-mono font-bold text-sm uppercase tracking-widest">CONNECTING TO GRID...</span>
+    <div className="space-y-8 animate-reveal max-w-4xl mx-auto">
+      <div className="text-center py-24 flex flex-col items-center justify-center gap-6 bg-white border border-[var(--color-outline)] rounded-3xl shadow-sm">
+        <div className={`w-10 h-10 border-[3px] border-[var(--color-outline)] rounded-full animate-spin ${provider === 'desco' ? 'border-t-[var(--color-desco)]' : 'border-t-[var(--color-nesco)]'}`} />
+        <span className="font-medium text-sm text-[var(--color-ink)]/50 tracking-wide">Retrieving grid data...</span>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="bg-[var(--color-surface-dim)] brutal-border h-32" />
+          <div key={i} className="bg-white border border-[var(--color-outline)] rounded-2xl h-32 animate-pulse" style={{ animationDelay: `${i * 100}ms` }} />
         ))}
       </div>
-      <div className="bg-[var(--color-surface-dim)] brutal-border h-80" />
     </div>
   )
 }

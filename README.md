@@ -1,16 +1,109 @@
-# React + Vite
+# NESCO / DESCO Prepaid Meter Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A React + Netlify Functions app for checking prepaid electricity meter data from:
 
-Currently, two official plugins are available:
+- `NESCO` (8-digit account or 11-digit meter)
+- `DESCO` (8-9 digit account or 11-12 digit meter)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+The UI includes recharge history, monthly usage analytics, charts, and reusable saved meter profiles.
 
-## React Compiler
+## Screenshots
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Landing (Desktop)
+![Landing desktop](./screenshots/landing-desktop.png)
 
-## Expanding the ESLint configuration
+### Landing (Mobile)
+![Landing mobile](./screenshots/landing-mobile.png)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### DESCO Input State
+![DESCO input state](./screenshots/input-desco-desktop.png)
+
+## Features
+
+- Provider switch: `NESCO` and `DESCO`
+- Input validation by provider-specific number lengths
+- Recharge history with PIN copy helper for failed remote recharges
+- Monthly breakdown table and usage charts (Recharts)
+- Local saved meter profiles with primary meter support
+- Serverless data fetch/parsing through Netlify Functions
+- Optional bot/webhook endpoints for Telegram, WhatsApp, and Discord flows
+
+## Stack
+
+- Frontend: React 19 + Vite 8 + Tailwind CSS 4
+- Charts: Recharts
+- Backend/API: Netlify Functions (`netlify/functions/*.mjs`)
+- HTML scraping/parsing: Cheerio (for NESCO)
+- Persistence for bot users: `@netlify/blobs`
+
+## Project Structure
+
+```txt
+src/
+  components/      # UI blocks (dashboard cards, charts, tables, forms)
+  hooks/           # local storage meter state
+  App.jsx          # app shell + fetch flow
+
+netlify/functions/
+  nesco.mjs        # NESCO scraper API
+  desco.mjs        # DESCO API adapter
+  telegram.mjs     # Telegram bot webhook
+  whatsapp.mjs     # WhatsApp webhook
+  discord.mjs      # Discord interaction endpoint
+```
+
+## Local Development
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Frontend-only dev (no serverless APIs):
+
+```bash
+npm run dev
+```
+
+3. Full app dev with Netlify Functions:
+
+```bash
+netlify dev
+```
+
+By default this serves through `http://localhost:8888` and proxies the Vite app + `/api/*` functions together.
+
+## Build & Quality
+
+```bash
+npm run lint
+npm run build
+```
+
+## API Endpoints
+
+- `GET /api/nesco?meter=<number>`
+- `GET /api/desco?account=<number>&meter=<number>`
+
+Bot/webhook endpoints:
+
+- `/api/telegram`
+- `/api/whatsapp`
+- `/api/discord`
+
+## Environment Variables
+
+Set these in Netlify when using bot integrations:
+
+- `TELEGRAM_BOT_TOKEN`
+- `WHATSAPP_VERIFY_TOKEN`
+- `WHATSAPP_TOKEN`
+- `WHATSAPP_PHONE_NUMBER_ID`
+
+`URL` can also be set to override the public site URL used by bot messages.
+
+## Notes
+
+- This is not an official NESCO or DESCO product.
+- Data availability/shape depends on upstream provider responses.

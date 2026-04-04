@@ -30,10 +30,10 @@ function CopyButton({ text }) {
   return (
     <button
       onClick={copyText}
-      className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 brutal-border bg-[var(--color-surface)] hover:bg-[var(--color-ink)] hover:text-[var(--color-surface)] font-mono text-[10px] font-bold uppercase transition-colors cursor-pointer"
-      title="COPY TOKEN"
+      className="ml-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-[var(--color-outline)] bg-white hover:bg-gray-50 text-[var(--color-ink)] text-xs font-medium transition-colors cursor-pointer"
+      title="Copy Token"
     >
-      {status === 'copied' ? '[COPIED]' : status === 'failed' ? '[FAILED]' : '[COPY PIN]'}
+      {status === 'copied' ? 'Copied' : status === 'failed' ? 'Failed' : 'Copy'}
     </button>
   )
 }
@@ -43,69 +43,69 @@ export default function RechargeHistory({ rechargeHistory }) {
   const visible = expanded ? rechargeHistory : rechargeHistory.slice(0, 10)
 
   return (
-    <div className="brutal-card overflow-hidden">
-      <div className="px-6 py-5 brutal-border-b flex items-end justify-between bg-[var(--color-surface-dim)]">
+    <div className="bg-white rounded-2xl border border-[var(--color-outline)] shadow-sm overflow-hidden">
+      <div className="px-6 py-6 border-b border-[var(--color-outline)] flex items-end justify-between">
         <div>
-          <h3 className="font-black text-2xl uppercase tracking-tighter">HISTORY</h3>
-          <p className="font-mono text-[10px] font-bold uppercase tracking-widest mt-1 opacity-70">{rechargeHistory.length} TRANSACTIONS</p>
+          <h3 className="text-lg font-semibold text-[var(--color-ink)] tracking-tight">History</h3>
+          <p className="text-sm text-[var(--color-ink)]/70 mt-1">{rechargeHistory.length} Transactions</p>
         </div>
         <div className="flex items-center">
-          <span className={`inline-flex items-center gap-1.5 px-3 py-1 brutal-border text-[10px] font-mono font-bold uppercase bg-[var(--color-surface)] ${
+          <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${
             rechargeHistory[0]?.status === 'Success'
-              ? 'text-[var(--color-success)]'
-              : 'text-[var(--color-warning)]'
+              ? 'bg-green-50 text-green-700 border-green-200'
+              : 'bg-amber-50 text-amber-700 border-amber-200'
           }`}>
-            <span className={`w-2 h-2 brutal-border ${
-              rechargeHistory[0]?.status === 'Success' ? 'bg-[var(--color-success)]' : 'bg-[var(--color-warning)]'
+            <span className={`w-2 h-2 rounded-full ${
+              rechargeHistory[0]?.status === 'Success' ? 'bg-green-500' : 'bg-amber-500'
             }`} />
-            LAST: {rechargeHistory[0]?.status === 'Success' ? 'AUTO' : 'PIN'}
+            Last: {rechargeHistory[0]?.status === 'Success' ? 'Auto' : 'PIN'}
           </span>
         </div>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-sm font-mono text-[11px] uppercase whitespace-nowrap">
-          <thead>
-            <tr className="bg-[var(--color-ink)] text-[var(--color-surface)] text-left">
-              <th className="px-4 py-3 font-bold tracking-widest border-r-2 border-[var(--color-ink)]">#</th>
-              <th className="px-4 py-3 font-bold tracking-widest border-r-2 border-[var(--color-ink)]">DATE & TOKEN</th>
-              <th className="px-4 py-3 font-bold tracking-widest border-r-2 border-[var(--color-ink)] text-right">AMOUNT</th>
-              <th className="px-4 py-3 font-bold tracking-widest border-r-2 border-[var(--color-ink)] text-right">ELEC</th>
-              <th className="px-4 py-3 font-bold tracking-widest border-r-2 border-[var(--color-ink)] text-right hidden sm:table-cell">KWH</th>
-              <th className="px-4 py-3 font-bold tracking-widest border-r-2 border-[var(--color-ink)] text-right hidden md:table-cell">VAT</th>
-              <th className="px-4 py-3 font-bold tracking-widest border-r-2 border-[var(--color-ink)] text-right hidden lg:table-cell">DEMAND</th>
-              <th className="px-4 py-3 font-bold tracking-widest border-r-2 border-[var(--color-ink)] text-right hidden lg:table-cell">REBATE</th>
-              <th className="px-4 py-3 font-bold tracking-widest border-r-2 border-[var(--color-ink)] text-center hidden sm:table-cell">MEDIUM</th>
-              <th className="px-4 py-3 font-bold tracking-widest text-center">STATUS</th>
+        <table className="w-full text-sm text-left whitespace-nowrap">
+          <thead className="bg-gray-50/50 text-[var(--color-ink)]/70 font-medium">
+            <tr>
+              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium">#</th>
+              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium">Date & Token</th>
+              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right">Amount</th>
+              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right">Elec</th>
+              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right hidden sm:table-cell">kWh</th>
+              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right hidden md:table-cell">VAT</th>
+              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right hidden lg:table-cell">Demand</th>
+              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right hidden lg:table-cell">Rebate</th>
+              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-center hidden sm:table-cell">Medium</th>
+              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-center">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y-2 divide-[var(--color-ink)]">
+          <tbody className="divide-y divide-[var(--color-outline)]">
             {visible.map((r, i) => (
-              <tr key={i} className="hover:bg-[var(--color-surface-dim)] transition-colors">
-                <td className="px-4 py-3 font-bold border-r-2 border-[var(--color-ink)]">{r.serial}</td>
-                <td className="px-4 py-3 border-r-2 border-[var(--color-ink)]">
-                  <div className="font-bold">{r.date}</div>
+              <tr key={i} className="hover:bg-gray-50/50 transition-colors">
+                <td className="px-6 py-4 text-[var(--color-ink)]/70">{r.serial}</td>
+                <td className="px-6 py-4">
+                  <div className="font-medium text-[var(--color-ink)]">{r.date}</div>
                   <div className="flex items-center mt-1">
-                    <span className="font-bold opacity-60 truncate max-w-[120px]" title={r.tokenNo}>{r.tokenNo}</span>
+                    <span className="text-[var(--color-ink)]/60 truncate max-w-[150px]" title={r.tokenNo}>{r.tokenNo}</span>
                     {r.status === 'Failed' && <CopyButton text={r.tokenNo} />}
                   </div>
                 </td>
-                <td className="px-4 py-3 text-right font-black text-sm border-r-2 border-[var(--color-ink)]">৳{r.rechargeAmount}</td>
-                <td className="px-4 py-3 text-right font-bold opacity-80 border-r-2 border-[var(--color-ink)]">৳{r.electricity.toFixed(0)}</td>
-                <td className="px-4 py-3 text-right font-bold border-r-2 border-[var(--color-ink)] hidden sm:table-cell">{r.probableKwh}</td>
-                <td className="px-4 py-3 text-right font-bold opacity-60 border-r-2 border-[var(--color-ink)] hidden md:table-cell">৳{r.vat.toFixed(0)}</td>
-                <td className="px-4 py-3 text-right font-bold opacity-60 border-r-2 border-[var(--color-ink)] hidden lg:table-cell">৳{r.demandCharge}</td>
-                <td className="px-4 py-3 text-right font-bold text-[var(--color-success)] border-r-2 border-[var(--color-ink)] hidden lg:table-cell">{r.rebate < 0 ? `৳${Math.abs(r.rebate).toFixed(0)}` : '-'}</td>
-                <td className="px-4 py-3 text-center border-r-2 border-[var(--color-ink)] hidden sm:table-cell">
-                  <span className="px-2 py-1 brutal-border bg-[var(--color-surface)]">{r.medium}</span>
+                <td className="px-6 py-4 text-right font-semibold text-[var(--color-ink)]">৳{r.rechargeAmount}</td>
+                <td className="px-6 py-4 text-right text-[var(--color-ink)]/80">৳{r.electricity.toFixed(0)}</td>
+                <td className="px-6 py-4 text-right text-[var(--color-ink)] hidden sm:table-cell">{r.probableKwh}</td>
+                <td className="px-6 py-4 text-right text-[var(--color-ink)]/60 hidden md:table-cell">৳{r.vat.toFixed(0)}</td>
+                <td className="px-6 py-4 text-right text-[var(--color-ink)]/60 hidden lg:table-cell">৳{r.demandCharge}</td>
+                <td className="px-6 py-4 text-right text-green-600 hidden lg:table-cell">{r.rebate < 0 ? `৳${Math.abs(r.rebate).toFixed(0)}` : '-'}</td>
+                <td className="px-6 py-4 text-center hidden sm:table-cell">
+                  <span className="px-2.5 py-1 rounded-md bg-gray-100 text-[var(--color-ink)]/80 text-xs font-medium">{r.medium}</span>
                 </td>
-                <td className="px-4 py-3 text-center">
-                  <span className={`inline-block px-2 py-1 brutal-border font-bold ${
+                <td className="px-6 py-4 text-center">
+                  <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${
                     r.status === 'Success'
-                      ? 'bg-[var(--color-success)] text-[var(--color-ink)]'
-                      : 'bg-[var(--color-warning)] text-[var(--color-ink)]'
+                      ? 'bg-green-50 text-green-700 border-green-200'
+                      : 'bg-amber-50 text-amber-700 border-amber-200'
                   }`}>
-                    {r.status === 'Success' ? 'AUTO' : 'PIN'}
+                    {r.status === 'Success' ? 'Auto' : 'PIN'}
                   </span>
                 </td>
               </tr>
@@ -117,10 +117,9 @@ export default function RechargeHistory({ rechargeHistory }) {
       {rechargeHistory.length > 10 && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="w-full py-4 text-xs font-black uppercase tracking-widest brutal-btn bg-[var(--color-ink)] text-[var(--color-surface)] border-none"
-          style={{boxShadow: 'none', transform: 'none'}}
+          className="w-full py-4 text-sm font-medium text-[var(--color-ink)] hover:bg-gray-50 transition-colors border-t border-[var(--color-outline)] cursor-pointer"
         >
-          {expanded ? '[- SHOW LESS]' : `[+ SHOW ALL ${rechargeHistory.length} TRANSACTIONS]`}
+          {expanded ? 'Show Less' : `Show All ${rechargeHistory.length} Transactions`}
         </button>
       )}
     </div>

@@ -13,15 +13,15 @@ const MONTH_MAP = {
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
   return (
-    <div className="bg-[var(--color-surface)] text-[var(--color-ink)] brutal-border brutal-shadow-sm p-3">
-      <p className="font-mono text-[10px] font-bold uppercase tracking-widest mb-2 border-b-2 border-[var(--color-ink)] pb-1">{label}</p>
+    <div className="bg-white rounded-lg border border-[var(--color-outline)] shadow-sm p-3 text-sm">
+      <p className="font-medium text-[var(--color-ink)] mb-2 border-b border-[var(--color-outline)] pb-1">{label}</p>
       {payload.map((p, i) => (
-        <div key={i} className="flex items-center justify-between gap-4 py-1 font-mono text-xs font-bold uppercase">
+        <div key={i} className="flex items-center justify-between gap-6 py-1">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 brutal-border" style={{ background: p.color }} />
-            <span>{p.name}:</span>
+            <span className="w-2.5 h-2.5 rounded-full" style={{ background: p.color }} />
+            <span className="text-[var(--color-ink)]/70">{p.name}:</span>
           </div>
-          <span>{typeof p.value === 'number' ? p.value.toFixed(2) : p.value}</span>
+          <span className="font-medium text-[var(--color-ink)]">{typeof p.value === 'number' ? p.value.toFixed(2) : p.value}</span>
         </div>
       ))}
     </div>
@@ -45,19 +45,19 @@ export default function UsageChart({ monthlyUsage }) {
   }))
 
   const views = [
-    { key: 'cost', label: 'COST' },
-    { key: 'kwh', label: 'ENERGY (KWH)' },
-    { key: 'rate', label: 'RATE' },
-    { key: 'balance', label: 'BALANCE' },
+    { key: 'cost', label: 'Cost' },
+    { key: 'kwh', label: 'Energy (kWh)' },
+    { key: 'rate', label: 'Rate' },
+    { key: 'balance', label: 'Balance' },
   ]
 
   return (
-    <div className="brutal-card p-6">
+    <div className="bg-white rounded-2xl border border-[var(--color-outline)] shadow-sm p-6">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
         <div>
-          <h3 className="font-black text-2xl uppercase tracking-tighter">USAGE ANALYTICS</h3>
-          <p className="font-mono text-[10px] font-bold uppercase tracking-widest mt-1 opacity-70">
-            ELECTRICITY CONSUMPTION
+          <h3 className="text-lg font-semibold text-[var(--color-ink)] tracking-tight">Usage Analytics</h3>
+          <p className="text-sm text-[var(--color-ink)]/70 mt-1">
+            Electricity consumption
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -65,10 +65,10 @@ export default function UsageChart({ monthlyUsage }) {
             <button
               key={v.key}
               onClick={() => setView(v.key)}
-              className={`px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-widest transition-all cursor-pointer brutal-border ${
+              className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                 view === v.key
-                  ? 'bg-[var(--color-ink)] text-[var(--color-surface)] brutal-shadow-sm'
-                  : 'bg-[var(--color-surface)] text-[var(--color-ink)] hover:bg-[var(--color-surface-dim)]'
+                  ? 'bg-[var(--color-ink)] text-white shadow-sm'
+                  : 'bg-white text-[var(--color-ink)]/70 border border-[var(--color-outline)] hover:bg-gray-50'
               }`}
             >
               {v.label}
@@ -81,43 +81,43 @@ export default function UsageChart({ monthlyUsage }) {
         <ResponsiveContainer width="100%" height="100%">
           {view === 'cost' ? (
             <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-ink)" strokeOpacity={0.2} vertical={false} />
-              <XAxis dataKey="month" tick={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 'bold', fill: 'var(--color-ink)' }} tickLine={false} axisLine={{ stroke: 'var(--color-ink)', strokeWidth: 2 }} />
-              <YAxis tick={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 'bold', fill: 'var(--color-ink)' }} tickLine={false} axisLine={{ stroke: 'var(--color-ink)', strokeWidth: 2 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-outline)" vertical={false} />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--color-ink)' }} tickLine={false} axisLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: 'var(--color-ink)' }} tickLine={false} axisLine={false} />
               <Tooltip content={<CustomTooltip />} />
-              <Legend iconType="square" iconSize={12} wrapperStyle={{ fontSize: '10px', fontFamily: 'monospace', fontWeight: 'bold', paddingTop: '16px' }} />
-              <Area type="step" dataKey="electricity" name="ELECTRICITY" fill="var(--color-nesco-light)" fillOpacity={1} stroke="var(--color-ink)" strokeWidth={2} />
-              <Bar dataKey="vat" name="VAT" fill="var(--color-warning)" stroke="var(--color-ink)" strokeWidth={2} stackId="extra" />
-              <Bar dataKey="demandCharge" name="DEMAND" fill="var(--color-accent-purple)" stroke="var(--color-ink)" strokeWidth={2} stackId="extra" />
-              <Bar dataKey="meterRent" name="METER RENT" fill="var(--color-surface-dim)" stroke="var(--color-ink)" strokeWidth={2} stackId="extra" />
-              <Line type="step" dataKey="totalRecharge" name="RECHARGE" stroke="var(--color-success)" strokeWidth={3} dot={{ r: 4, fill: 'var(--color-success)', stroke: 'var(--color-ink)', strokeWidth: 2 }} />
+              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '12px', fontWeight: '500', paddingTop: '16px' }} />
+              <Area type="monotone" dataKey="electricity" name="Electricity" fill="#eff6ff" fillOpacity={1} stroke="#3b82f6" strokeWidth={2} />
+              <Bar dataKey="vat" name="VAT" fill="#f59e0b" radius={[2, 2, 0, 0]} stackId="extra" />
+              <Bar dataKey="demandCharge" name="Demand" fill="#8b5cf6" radius={[2, 2, 0, 0]} stackId="extra" />
+              <Bar dataKey="meterRent" name="Meter Rent" fill="#94a3b8" radius={[2, 2, 0, 0]} stackId="extra" />
+              <Line type="monotone" dataKey="totalRecharge" name="Recharge" stroke="#10b981" strokeWidth={2} dot={{ r: 4, fill: '#10b981', stroke: '#ffffff', strokeWidth: 2 }} />
             </ComposedChart>
           ) : view === 'kwh' ? (
             <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-ink)" strokeOpacity={0.2} vertical={false} />
-              <XAxis dataKey="month" tick={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 'bold', fill: 'var(--color-ink)' }} tickLine={false} axisLine={{ stroke: 'var(--color-ink)', strokeWidth: 2 }} />
-              <YAxis tick={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 'bold', fill: 'var(--color-ink)' }} tickLine={false} axisLine={{ stroke: 'var(--color-ink)', strokeWidth: 2 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-outline)" vertical={false} />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--color-ink)' }} tickLine={false} axisLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: 'var(--color-ink)' }} tickLine={false} axisLine={false} />
               <Tooltip content={<CustomTooltip />} />
-              <Legend iconType="square" iconSize={12} wrapperStyle={{ fontSize: '10px', fontFamily: 'monospace', fontWeight: 'bold', paddingTop: '16px' }} />
-              <Area type="step" dataKey="kwh" name="ENERGY (KWH)" fill="var(--color-warning)" fillOpacity={1} stroke="var(--color-ink)" strokeWidth={2} />
-              <Line type="step" dataKey="electricity" name="COST" stroke="var(--color-nesco)" strokeWidth={3} dot={{ r: 4, fill: 'var(--color-nesco)', stroke: 'var(--color-ink)', strokeWidth: 2 }} />
+              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '12px', fontWeight: '500', paddingTop: '16px' }} />
+              <Area type="monotone" dataKey="kwh" name="Energy (kWh)" fill="#fef3c7" fillOpacity={1} stroke="#f59e0b" strokeWidth={2} />
+              <Line type="monotone" dataKey="electricity" name="Cost" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4, fill: '#3b82f6', stroke: '#ffffff', strokeWidth: 2 }} />
             </ComposedChart>
           ) : view === 'rate' ? (
             <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-ink)" strokeOpacity={0.2} vertical={false} />
-              <XAxis dataKey="month" tick={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 'bold', fill: 'var(--color-ink)' }} tickLine={false} axisLine={{ stroke: 'var(--color-ink)', strokeWidth: 2 }} />
-              <YAxis tick={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 'bold', fill: 'var(--color-ink)' }} tickLine={false} axisLine={{ stroke: 'var(--color-ink)', strokeWidth: 2 }} domain={['auto', 'auto']} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-outline)" vertical={false} />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--color-ink)' }} tickLine={false} axisLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: 'var(--color-ink)' }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
               <Tooltip content={<CustomTooltip />} />
-              <Legend iconType="square" iconSize={12} wrapperStyle={{ fontSize: '10px', fontFamily: 'monospace', fontWeight: 'bold', paddingTop: '16px' }} />
-              <Area type="step" dataKey="rate" name="RATE (৳/KWH)" fill="var(--color-accent-purple)" fillOpacity={1} stroke="var(--color-ink)" strokeWidth={2} />
+              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '12px', fontWeight: '500', paddingTop: '16px' }} />
+              <Area type="monotone" dataKey="rate" name="Rate (৳/kWh)" fill="#ede9fe" fillOpacity={1} stroke="#8b5cf6" strokeWidth={2} />
             </ComposedChart>
           ) : (
             <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-ink)" strokeOpacity={0.2} vertical={false} />
-              <XAxis dataKey="month" tick={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 'bold', fill: 'var(--color-ink)' }} tickLine={false} axisLine={{ stroke: 'var(--color-ink)', strokeWidth: 2 }} />
-              <YAxis tick={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 'bold', fill: 'var(--color-ink)' }} tickLine={false} axisLine={{ stroke: 'var(--color-ink)', strokeWidth: 2 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-outline)" vertical={false} />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--color-ink)' }} tickLine={false} axisLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: 'var(--color-ink)' }} tickLine={false} axisLine={false} />
               <Tooltip content={<CustomTooltip />} />
-              <Area type="step" dataKey="balance" name="BALANCE" fill="var(--color-success)" fillOpacity={1} stroke="var(--color-ink)" strokeWidth={2} />
+              <Area type="monotone" dataKey="balance" name="Balance" fill="#d1fae5" fillOpacity={1} stroke="#10b981" strokeWidth={2} />
             </AreaChart>
           )}
         </ResponsiveContainer>
