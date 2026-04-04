@@ -78,23 +78,29 @@ export default async (req) => {
     const meter = info.meterNo;
     const bothQs = `accountNo=${acct}&meterNo=${meter}`;
 
-    // Date ranges — DESCO enforces max 12 months
-    // Match DESCO's own site: first of current month last year → last day of previous month
+    // Date ranges — DESCO enforces strict max 12 months for both date and month APIs
     const now = new Date();
-    const oneYearAgo = new Date(now);
-    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-    oneYearAgo.setDate(1); // first of that month
-    const twoWeeksAgo = new Date(now);
-    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-
     const fmt = (d) => d.toISOString().slice(0, 10);
     const fmtMonth = (d) => d.toISOString().slice(0, 7);
+
+    // For recharge history: exactly 1 year back from today (dateFrom/dateTo format)
+    const rechargeFrom = new Date(now);
+    rechargeFrom.setFullYear(rechargeFrom.getFullYear() - 1);
+    rechargeFrom.setDate(rechargeFrom.getDate() + 1); // +1 day to stay within 12 months
+
+    // For monthly consumption: DESCO counts both endpoints as months, so 2025-05 → 2026-04 = 12 months
+    const monthlyFrom = new Date(now);
+    monthlyFrom.setMonth(monthlyFrom.getMonth() - 10);
+    monthlyFrom.setDate(1);
+
+    const twoWeeksAgo = new Date(now);
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
 
     // Fetch all data in parallel
     const [balanceRes, rechargeRes, monthlyRes, dailyRes, locationRes, minRechargeRes] = await Promise.all([
       descoFetch(`${BASE}/tkdes/customer/getBalance?${bothQs}`),
-      descoFetch(`${BASE}/tkdes/customer/getRechargeHistory?${bothQs}&dateFrom=${fmt(oneYearAgo)}&dateTo=${fmt(now)}`),
-      descoFetch(`${BASE}/tkdes/customer/getCustomerMonthlyConsumption?${bothQs}&monthFrom=${fmtMonth(oneYearAgo)}&monthTo=${fmtMonth(now)}`),
+      descoFetch(`${BASE}/tkdes/customer/getRechargeHistory?${bothQs}&dateFrom=${fmt(rechargeFrom)}&dateTo=${fmt(now)}`),
+      descoFetch(`${BASE}/tkdes/customer/getCustomerMonthlyConsumption?${bothQs}&monthFrom=${fmtMonth(monthlyFrom)}&monthTo=${fmtMonth(now)}`),
       descoFetch(`${BASE}/tkdes/customer/getCustomerDailyConsumption?${bothQs}&dateFrom=${fmt(twoWeeksAgo)}&dateTo=${fmt(now)}`),
       descoFetch(`${BASE}/common/getCustomerLocation?accountNo=${acct}`),
       smartFetch(`${SMART_BASE}/customer/min/recharge?${bothQs}`).catch(() => ({ data: null })),
@@ -163,27 +169,45 @@ export default async (req) => {
       };
     });
 
-    // Normalize monthly usage
-    const monthlyUsage = (monthlyRes?.data || []).reverse().map((m) => {
-      const [year, monthNum] = (m.month || '').split('-');
-      const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-      return {
-        year: year || '',
-        month: monthNames[parseInt(monthNum)] || monthNum || '',
-        totalRecharge: 0, // DESCO monthly doesn't have recharge totals
-        rebate: 0,
-        usedElectricity: m.consumedTaka || 0,
-        meterRent: 0,
-        demandCharge: 0,
-        pfcCharge: 0,
-        paidDues: 0,
-        vat: 0,
-        totalUsage: m.consumedTaka || 0,
-        endBalance: 0,
-        usedKwh: m.consumedUnit || 0,
-        maxDemand: m.maximumDemand || 0,
-      };
+    // Compute monthly recharge totals from recharge history
+    const monthlyRechargeTotals = {};
+    rechargeHistory.forEach((r) => {
+      const match = r.date.match(/^(\d{4}-\d{2})/);
+      if (match) {
+        const key = match[1];
+        if (!monthlyRechargeTotals[key]) monthlyRechargeTotals[key] = { total: 0, vat: 0, demand: 0, rent: 0, rebate: 0 };
+        monthlyRechargeTotals[key].total += r.rechargeAmount;
+        monthlyRechargeTotals[key].vat += r.vat;
+        monthlyRechargeTotals[key].demand += r.demandCharge;
+        monthlyRechargeTotals[key].rent += r.meterRent;
+        monthlyRechargeTotals[key].rebate += r.rebate;
+      }
     });
+
+    // Normalize monthly usage — sort by month descending (newest first)
+    const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const monthlyUsage = (monthlyRes?.data || [])
+      .sort((a, b) => (b.month || '').localeCompare(a.month || ''))
+      .map((m) => {
+        const [year, monthNum] = (m.month || '').split('-');
+        const rt = monthlyRechargeTotals[m.month] || {};
+        return {
+          year: year || '',
+          month: monthNames[parseInt(monthNum)] || monthNum || '',
+          totalRecharge: rt.total || 0,
+          rebate: rt.rebate || 0,
+          usedElectricity: m.consumedTaka || 0,
+          meterRent: rt.rent || 0,
+          demandCharge: rt.demand || 0,
+          pfcCharge: 0,
+          paidDues: 0,
+          vat: rt.vat || 0,
+          totalUsage: m.consumedTaka || 0,
+          endBalance: 0,
+          usedKwh: m.consumedUnit || 0,
+          maxDemand: m.maximumDemand || 0,
+        };
+      });
 
     // Daily consumption
     const dailyConsumption = (dailyRes?.data || []).map((d) => ({
