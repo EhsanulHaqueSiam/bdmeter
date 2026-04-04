@@ -184,16 +184,17 @@ The web dashboard works out of the box with no environment variables. Bot integr
 **Telegram bot commands:**
 | Command | Description |
 |---------|-------------|
-| `/check <number>` | Full meter report |
-| `/balance` | Quick balance check |
-| `/token` | Last recharge PIN/token |
+| `/help` | Show all commands |
+| `/check [number]` | Full meter report (uses primary if no number given) |
+| `/balance [number]` | Quick balance check |
+| `/token [number]` or `/pin [number]` | Last recharge PIN/token |
 | `/provider nesco\|desco` | Set default provider |
 | `/save <number>` | Save a meter |
 | `/primary <number>` | Set primary meter |
-| `/meters` | List saved meters |
+| `/meters` or `/list` | List saved meters |
 | `/remove <number>` | Remove a saved meter |
 
-Or just send a meter/account number directly.
+Or just send a meter/account number directly (8-12 digits).
 
 #### WhatsApp Bot
 
@@ -206,31 +207,33 @@ Or just send a meter/account number directly.
 4. Set the webhook URL in Meta dashboard to `https://your-site.netlify.app/api/whatsapp`
 5. Subscribe to the `messages` webhook field
 
-**WhatsApp commands:** Same as Telegram but without `/` prefix (e.g., `check 82044144`, `balance`, `token`, `save`, `meters`, `provider nesco`).
+**WhatsApp bot commands:**
+| Command | Description |
+|---------|-------------|
+| `help` (or `hi`, `hello`, `start`, `menu`) | Show all commands |
+| `check [number]` | Full meter report |
+| `balance [number]` | Quick balance check |
+| `token [number]` or `pin [number]` | Last recharge PIN/token |
+| `provider nesco\|desco` | Set default provider |
+| `save <number>` | Save a meter |
+| `primary <number>` | Set primary meter |
+| `meters` or `list` | List saved meters |
+| `remove <number>` | Remove a saved meter |
+
+Or just send a meter/account number directly (8-12 digits).
 
 #### Discord Bot
 
 1. Create a [Discord Application](https://discord.com/developers/applications)
 2. Add a bot to your application
 3. Set the **Interactions Endpoint URL** to `https://your-site.netlify.app/api/discord`
-4. Register slash commands using the Discord API:
+4. Register slash commands — use the built-in registration endpoint:
 
-```bash
-# Register commands (run once)
-curl -X PUT "https://discord.com/api/v10/applications/<APP_ID>/commands" \
-  -H "Authorization: Bot <BOT_TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '[
-    {"name":"check","description":"Full meter report","options":[{"name":"meter","type":3,"description":"Meter/account number"},{"name":"provider","type":3,"description":"nesco or desco","choices":[{"name":"NESCO","value":"nesco"},{"name":"DESCO","value":"desco"}]}]},
-    {"name":"balance","description":"Quick balance","options":[{"name":"meter","type":3,"description":"Meter number"}]},
-    {"name":"token","description":"Last recharge token/PIN","options":[{"name":"meter","type":3,"description":"Meter number"}]},
-    {"name":"provider","description":"Set default provider","options":[{"name":"provider","type":3,"description":"nesco or desco","required":true,"choices":[{"name":"NESCO","value":"nesco"},{"name":"DESCO","value":"desco"}]}]},
-    {"name":"save","description":"Save a meter","options":[{"name":"meter","type":3,"description":"Meter number","required":true},{"name":"provider","type":3,"description":"nesco or desco","choices":[{"name":"NESCO","value":"nesco"},{"name":"DESCO","value":"desco"}]}]},
-    {"name":"primary","description":"Set primary meter","options":[{"name":"meter","type":3,"description":"Meter number","required":true}]},
-    {"name":"meters","description":"List saved meters"},
-    {"name":"remove","description":"Remove a meter","options":[{"name":"meter","type":3,"description":"Meter number","required":true}]}
-  ]'
 ```
+GET https://your-site.netlify.app/api/discord?register=true&app_id=<APP_ID>&bot_token=<BOT_TOKEN>
+```
+
+This auto-registers all 10 slash commands (`/help`, `/check`, `/balance`, `/token`, `/pin`, `/provider`, `/save`, `/primary`, `/meters`, `/remove`). You only need to run this once.
 
 5. Invite the bot to your server with the `applications.commands` scope
 

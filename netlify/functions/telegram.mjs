@@ -1,7 +1,7 @@
 import { getStore } from '@netlify/blobs';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const SITE_URL = process.env.URL || 'https://nesco-meter.netlify.app';
+const SITE_URL = process.env.URL || 'https://bdmeter.netlify.app';
 
 async function fetchData(meter, provider) {
   const url = provider === 'desco'
@@ -24,7 +24,7 @@ async function saveUser(chatId, userData) {
 }
 
 function findMeter(user, number) {
-  return user.meters.find(m => m.number === number || m === number);
+  return user.meters.find(m => (typeof m === 'object' ? m.number : m) === number);
 }
 
 function getMeterProvider(user, number) {
@@ -42,6 +42,12 @@ function addMeterToUser(user, number, provider) {
 
 function meterList(user) {
   return user.meters.map(m => typeof m === 'object' ? m : { number: m, provider: user.provider || 'nesco' });
+}
+
+function parseMeter(text) {
+  const cleaned = text.replace(/\D/g, '');
+  if (cleaned.length >= 8 && cleaned.length <= 12) return cleaned;
+  return null;
 }
 
 function formatFull(data, prov) {
@@ -129,6 +135,7 @@ function formatBalance(data, prov) {
   const last = data.rechargeHistory?.[0];
   const balance = c?.balance ? parseFloat(c.balance) : 0;
   let msg = `💰 *৳${balance.toFixed(2)}* (${(prov || 'nesco').toUpperCase()})\n`;
+  if (c?.balanceTime) msg += `As of ${c.balanceTime}\n`;
   if (c?.currentMonthConsumption) msg += `This month: ৳${c.currentMonthConsumption}\n`;
   if (last) {
     msg += `Last: ৳${last.rechargeAmount} on ${last.date}\n`;
@@ -137,6 +144,7 @@ function formatBalance(data, prov) {
       msg += isAuto ? '✅ Auto-applied' : `⚠️ Enter PIN: \`${last.tokenNo.replace(/\s/g, '')}\``;
     }
   }
+  if (c?.minRecharge) msg += `\nMin recharge: ৳${c.minRecharge}`;
   return msg;
 }
 
@@ -144,7 +152,7 @@ function formatToken(data, prov) {
   const last = data.rechargeHistory?.[0];
   if (!last) return '❌ No recharge found.';
   let msg = `🔑 *Last Token*\n\n\`${last.tokenNo.replace(/\s/g, '')}\`\n\n`;
-  msg += `৳${last.rechargeAmount} | ${last.date}\n`;
+  msg += `৳${last.rechargeAmount} via ${last.medium || 'Online'} | ${last.date}\n`;
   if (prov === 'nesco') {
     msg += last.status === 'Success' ? '✅ Already auto-applied' : '⚠️ Enter this PIN in your meter';
   } else {
@@ -177,12 +185,13 @@ export default async (req) => {
 
     const user = await getUser(chatId);
 
+    // Help
     if (cmd === '/start' || cmd === '/help') {
       let msg = `⚡ *Prepaid Meter Bot*\nSupports *NESCO* & *DESCO*\n\n`;
       msg += `*Commands:*\n`;
       msg += `/check \`number\` — Full report\n`;
-      msg += `/balance — Quick balance\n`;
-      msg += `/token — Last recharge PIN\n`;
+      msg += `/balance \`number\` — Quick balance\n`;
+      msg += `/token \`number\` — Last recharge PIN\n`;
       msg += `/provider nesco|desco — Set default\n`;
       msg += `/save \`number\` — Save a meter\n`;
       msg += `/primary \`number\` — Set primary\n`;
@@ -195,6 +204,7 @@ export default async (req) => {
       return new Response('ok', { status: 200 });
     }
 
+    // Provider
     if (cmd === '/provider') {
       const prov = arg.toLowerCase();
       if (prov !== 'nesco' && prov !== 'desco') {
@@ -207,20 +217,23 @@ export default async (req) => {
       return new Response('ok', { status: 200 });
     }
 
+    // Save
     if (cmd === '/save') {
-      const meter = arg.replace(/\D/g, '');
-      if (meter.length < 8 || meter.length > 12) {
-        await send(chatId, '❌ Usage: /save `82044144`');
+      const meter = parseMeter(arg);
+      if (!meter) {
+        await send(chatId, '❌ Usage: /save `82044144`\nAccount: 8-9 digits, Meter: 11-12 digits');
         return new Response('ok', { status: 200 });
       }
-      addMeterToUser(user, meter, user.provider || 'nesco');
+      const prov = user.provider || 'nesco';
+      addMeterToUser(user, meter, prov);
       await saveUser(chatId, user);
-      await send(chatId, `✅ Meter \`${meter}\` saved (${(user.provider || 'nesco').toUpperCase()})! ${user.meters.length} meter(s) total.`);
+      await send(chatId, `✅ Meter \`${meter}\` saved (${prov.toUpperCase()})! ${user.meters.length} meter(s) total.`);
       return new Response('ok', { status: 200 });
     }
 
+    // Primary
     if (cmd === '/primary') {
-      const meter = arg.replace(/\D/g, '') || user.primary;
+      const meter = parseMeter(arg) || user.primary;
       if (!meter || !findMeter(user, meter)) {
         await send(chatId, '❌ Save the meter first with /save');
         return new Response('ok', { status: 200 });
@@ -231,7 +244,8 @@ export default async (req) => {
       return new Response('ok', { status: 200 });
     }
 
-    if (cmd === '/meters') {
+    // Meters list
+    if (cmd === '/meters' || cmd === '/list') {
       const list = meterList(user);
       if (list.length === 0) {
         await send(chatId, '📋 No saved meters. Send a meter number to start.');
@@ -246,18 +260,32 @@ export default async (req) => {
       return new Response('ok', { status: 200 });
     }
 
+    // Remove
     if (cmd === '/remove') {
-      const meter = arg.replace(/\D/g, '');
+      const meter = parseMeter(arg);
+      if (!meter) {
+        await send(chatId, '❌ Usage: /remove `82044144`');
+        return new Response('ok', { status: 200 });
+      }
+      const before = user.meters.length;
       user.meters = user.meters.filter(m => (typeof m === 'object' ? m.number : m) !== meter);
+      if (user.meters.length === before) {
+        await send(chatId, `❌ Meter \`${meter}\` not found in saved list.`);
+        return new Response('ok', { status: 200 });
+      }
       if (user.primary === meter) user.primary = meterList(user)[0]?.number || null;
       await saveUser(chatId, user);
       await send(chatId, `🗑️ Meter \`${meter}\` removed.`);
       return new Response('ok', { status: 200 });
     }
 
-    if (cmd === '/balance' || cmd === '/token' || cmd === '/check') {
-      const meter = arg.replace(/\D/g, '') || user.primary;
-      if (!meter) { await send(chatId, '❌ No primary meter. Send a number or /save first.'); return new Response('ok', { status: 200 }); }
+    // Balance, Token/PIN, Check
+    if (cmd === '/balance' || cmd === '/token' || cmd === '/pin' || cmd === '/check') {
+      const meter = parseMeter(arg) || user.primary;
+      if (!meter) {
+        await send(chatId, '❌ No primary meter. Send a number or /save first.');
+        return new Response('ok', { status: 200 });
+      }
       const prov = getMeterProvider(user, meter);
       await send(chatId, `⏳ Fetching from ${prov.toUpperCase()}...`);
       const data = await fetchData(meter, prov);
@@ -265,14 +293,14 @@ export default async (req) => {
       addMeterToUser(user, meter, prov);
       await saveUser(chatId, user);
       if (cmd === '/balance') await send(chatId, formatBalance(data, prov));
-      else if (cmd === '/token') await send(chatId, formatToken(data, prov));
+      else if (cmd === '/token' || cmd === '/pin') await send(chatId, formatToken(data, prov));
       else await send(chatId, formatFull(data, prov));
       return new Response('ok', { status: 200 });
     }
 
     // Bare number
-    const meter = text.replace(/\D/g, '');
-    if (meter.length >= 8 && meter.length <= 12) {
+    const meter = parseMeter(text);
+    if (meter) {
       const prov = getMeterProvider(user, meter);
       await send(chatId, `⏳ Fetching from ${prov.toUpperCase()}...`);
       const data = await fetchData(meter, prov);

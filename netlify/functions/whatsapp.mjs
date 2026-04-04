@@ -3,7 +3,7 @@ import { getStore } from '@netlify/blobs';
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'nesco-verify';
 const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
 const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
-const SITE_URL = process.env.URL || 'https://nesco-meter.netlify.app';
+const SITE_URL = process.env.URL || 'https://bdmeter.netlify.app';
 
 async function fetchData(meter, provider) {
   const url = provider === 'desco'
@@ -18,17 +18,37 @@ async function getUser(phone) {
     return (await store.get(phone, { type: 'json' })) || { meters: [], primary: null, provider: 'nesco' };
   } catch { return { meters: [], primary: null, provider: 'nesco' }; }
 }
-async function saveUser(phone, data) { const store = getStore('whatsapp-users'); await store.setJSON(phone, data); }
 
-function findMeter(user, number) { return user.meters.find(m => (typeof m === 'object' ? m.number : m) === number); }
-function getMeterProvider(user, number) { const m = findMeter(user, number); return (m && typeof m === 'object') ? m.provider || user.provider : user.provider || 'nesco'; }
+async function saveUser(phone, data) {
+  const store = getStore('whatsapp-users');
+  await store.setJSON(phone, data);
+}
+
+function findMeter(user, number) {
+  return user.meters.find(m => (typeof m === 'object' ? m.number : m) === number);
+}
+
+function getMeterProvider(user, number) {
+  const m = findMeter(user, number);
+  return (m && typeof m === 'object') ? m.provider || user.provider : user.provider || 'nesco';
+}
+
 function addMeter(user, number, provider) {
   const exists = user.meters.find(m => (typeof m === 'object' ? m.number : m) === number);
   if (!exists) user.meters.push({ number, provider });
   else if (typeof exists === 'object') exists.provider = provider;
   if (!user.primary) user.primary = number;
 }
-function meterList(user) { return user.meters.map(m => typeof m === 'object' ? m : { number: m, provider: user.provider || 'nesco' }); }
+
+function meterList(user) {
+  return user.meters.map(m => typeof m === 'object' ? m : { number: m, provider: user.provider || 'nesco' });
+}
+
+function parseMeter(text) {
+  const cleaned = text.replace(/\D/g, '');
+  if (cleaned.length >= 8 && cleaned.length <= 12) return cleaned;
+  return null;
+}
 
 function formatFull(data, prov) {
   const { customerInfo: c, rechargeHistory = [], monthlyUsage = [], dailyConsumption } = data;
@@ -80,6 +100,7 @@ function formatFull(data, prov) {
     msg += `   Used: *${latest.usedKwh.toFixed(1)} kWh*`;
     if (kwhChange !== null) msg += ` (${kwhChange > 0 ? '↑' : '↓'}${Math.abs(kwhChange)}%)`;
     msg += `\n   Rate: ৳${rate}/kWh\n`;
+    msg += `   End Balance: ৳${latest.endBalance.toFixed(2)}\n`;
   }
 
   if (monthlyUsage.length > 1) {
@@ -102,6 +123,33 @@ function formatFull(data, prov) {
   return msg;
 }
 
+function formatBalance(data, prov) {
+  const c = data.customerInfo;
+  const last = data.rechargeHistory?.[0];
+  const balance = c?.balance ? parseFloat(c.balance) : 0;
+  let msg = `💰 *৳${balance.toFixed(2)}* (${(prov || 'nesco').toUpperCase()})\n`;
+  if (c?.balanceTime) msg += `As of ${c.balanceTime}\n`;
+  if (c?.currentMonthConsumption) msg += `This month: ৳${c.currentMonthConsumption}\n`;
+  if (last) {
+    msg += `Last: ৳${last.rechargeAmount} on ${last.date}\n`;
+    if (prov === 'nesco') {
+      msg += last.status === 'Success' ? '✅ Auto-applied' : `⚠️ PIN: ${last.tokenNo.replace(/\s/g, '')}`;
+    }
+  }
+  if (c?.minRecharge) msg += `\nMin recharge: ৳${c.minRecharge}`;
+  return msg;
+}
+
+function formatToken(data, prov) {
+  const last = data.rechargeHistory?.[0];
+  if (!last) return '❌ No recharge found.';
+  let msg = `🔑 *Last Token*\n\n${last.tokenNo.replace(/\s/g, '')}\n\n`;
+  msg += `৳${last.rechargeAmount} via ${last.medium || 'Online'} | ${last.date}\n`;
+  if (prov === 'nesco') msg += last.status === 'Success' ? '✅ Auto-applied' : '⚠️ Enter this PIN in your meter';
+  else msg += last.status === 'Success' ? '✅ Successful' : `Status: ${last.status}`;
+  return msg;
+}
+
 async function sendMsg(to, text) {
   if (!WHATSAPP_TOKEN || !PHONE_NUMBER_ID) return;
   await fetch(`https://graph.facebook.com/v18.0/${PHONE_NUMBER_ID}/messages`, {
@@ -113,6 +161,8 @@ async function sendMsg(to, text) {
 
 export default async (req) => {
   const url = new URL(req.url);
+
+  // Webhook verification
   if (req.method === 'GET') {
     const mode = url.searchParams.get('hub.mode');
     const token = url.searchParams.get('hub.verify_token');
@@ -127,19 +177,25 @@ export default async (req) => {
     if (!message?.text?.body) return new Response('ok', { status: 200 });
 
     const from = message.from;
-    const text = message.text.body.trim().toLowerCase();
+    const raw = message.text.body.trim();
+    const text = raw.toLowerCase();
+    const parts = text.split(/\s+/);
+    const cmd = parts[0];
+    const arg = parts.slice(1).join(' ').trim();
+
     const user = await getUser(from);
 
-    if (text === 'help' || text === 'hi' || text === 'hello' || text === 'start') {
+    // Help
+    if (['help', 'hi', 'hello', 'start', 'menu'].includes(cmd)) {
       let msg = `⚡ *Prepaid Meter Bot*\nSupports *NESCO* & *DESCO*\n\n`;
       msg += `*Commands:*\n`;
       msg += `• *check 82044144* — Full report\n`;
-      msg += `• *balance* — Quick balance\n`;
+      msg += `• *balance* or *balance 82044144* — Quick balance\n`;
       msg += `• *token* or *pin* — Last recharge PIN\n`;
       msg += `• *provider nesco* or *desco* — Set default\n`;
       msg += `• *save 82044144* — Save meter\n`;
       msg += `• *primary 82044144* — Set primary\n`;
-      msg += `• *meters* — List saved\n`;
+      msg += `• *meters* or *list* — List saved\n`;
       msg += `• *remove 82044144* — Remove meter\n\n`;
       msg += `Or just send a number!\n`;
       msg += `Default: *${(user.provider || 'nesco').toUpperCase()}*`;
@@ -148,99 +204,134 @@ export default async (req) => {
       return new Response('ok', { status: 200 });
     }
 
-    if (text.startsWith('provider ')) {
-      const prov = text.replace('provider', '').trim();
-      if (prov !== 'nesco' && prov !== 'desco') { await sendMsg(from, `❌ Send: provider nesco or provider desco\nCurrent: ${(user.provider||'nesco').toUpperCase()}`); return new Response('ok', { status: 200 }); }
+    // Provider
+    if (cmd === 'provider') {
+      const prov = arg;
+      if (prov !== 'nesco' && prov !== 'desco') {
+        await sendMsg(from, `❌ Send: provider nesco or provider desco\nCurrent: ${(user.provider || 'nesco').toUpperCase()}`);
+        return new Response('ok', { status: 200 });
+      }
       user.provider = prov;
       await saveUser(from, user);
       await sendMsg(from, `✅ Default set to *${prov.toUpperCase()}*`);
       return new Response('ok', { status: 200 });
     }
 
-    if (text.startsWith('save ')) {
-      const meter = text.replace('save', '').replace(/\D/g, '');
-      if (meter.length < 8 || meter.length > 12) { await sendMsg(from, '❌ Send: save 82044144'); return new Response('ok', { status: 200 }); }
-      addMeter(user, meter, user.provider || 'nesco');
+    // Save
+    if (cmd === 'save') {
+      const meter = parseMeter(arg);
+      if (!meter) {
+        await sendMsg(from, '❌ Send: save 82044144\nAccount: 8-9 digits, Meter: 11-12 digits');
+        return new Response('ok', { status: 200 });
+      }
+      const prov = user.provider || 'nesco';
+      addMeter(user, meter, prov);
       await saveUser(from, user);
-      await sendMsg(from, `✅ ${meter} saved (${(user.provider||'nesco').toUpperCase()})! ${user.meters.length} total.`);
+      await sendMsg(from, `✅ ${meter} saved (${prov.toUpperCase()})! ${user.meters.length} total.`);
       return new Response('ok', { status: 200 });
     }
 
-    if (text.startsWith('primary ')) {
-      const meter = text.replace('primary', '').replace(/\D/g, '');
-      if (!findMeter(user, meter)) { await sendMsg(from, '❌ Save it first.'); return new Response('ok', { status: 200 }); }
+    // Primary
+    if (cmd === 'primary') {
+      const meter = parseMeter(arg);
+      if (!meter) {
+        await sendMsg(from, '❌ Send: primary 82044144');
+        return new Response('ok', { status: 200 });
+      }
+      if (!findMeter(user, meter)) {
+        await sendMsg(from, '❌ Save it first with: save 82044144');
+        return new Response('ok', { status: 200 });
+      }
       user.primary = meter;
       await saveUser(from, user);
       await sendMsg(from, `⭐ Primary: ${meter}`);
       return new Response('ok', { status: 200 });
     }
 
-    if (text === 'meters' || text === 'list') {
+    // Meters list
+    if (cmd === 'meters' || cmd === 'list') {
       const list = meterList(user);
-      if (!list.length) { await sendMsg(from, '📋 No saved meters.'); return new Response('ok', { status: 200 }); }
+      if (!list.length) {
+        await sendMsg(from, '📋 No saved meters. Send a meter number to start.');
+        return new Response('ok', { status: 200 });
+      }
       let msg = `📋 *Saved Meters (${list.length})*\n\n`;
-      list.forEach((m, i) => { msg += `${i+1}. ${m.number} [${m.provider.toUpperCase()}]${m.number === user.primary ? ' ⭐' : ''}\n`; });
-      msg += `\nDefault: *${(user.provider||'nesco').toUpperCase()}*`;
+      list.forEach((m, i) => {
+        msg += `${i + 1}. ${m.number} [${(m.provider || 'nesco').toUpperCase()}]${m.number === user.primary ? ' ⭐' : ''}\n`;
+      });
+      msg += `\nDefault: *${(user.provider || 'nesco').toUpperCase()}*`;
       await sendMsg(from, msg);
       return new Response('ok', { status: 200 });
     }
 
-    if (text.startsWith('remove ')) {
-      const meter = text.replace('remove', '').replace(/\D/g, '');
+    // Remove
+    if (cmd === 'remove') {
+      const meter = parseMeter(arg);
+      if (!meter) {
+        await sendMsg(from, '❌ Send: remove 82044144');
+        return new Response('ok', { status: 200 });
+      }
+      const before = user.meters.length;
       user.meters = user.meters.filter(m => (typeof m === 'object' ? m.number : m) !== meter);
+      if (user.meters.length === before) {
+        await sendMsg(from, `❌ Meter ${meter} not found in saved list.`);
+        return new Response('ok', { status: 200 });
+      }
       if (user.primary === meter) user.primary = meterList(user)[0]?.number || null;
       await saveUser(from, user);
       await sendMsg(from, `🗑️ ${meter} removed.`);
       return new Response('ok', { status: 200 });
     }
 
-    if (text === 'balance') {
-      const meter = user.primary;
-      if (!meter) { await sendMsg(from, '❌ No primary meter.'); return new Response('ok', { status: 200 }); }
-      const prov = getMeterProvider(user, meter);
-      const data = await fetchData(meter, prov);
-      if (data.error) { await sendMsg(from, `❌ ${data.error}`); return new Response('ok', { status: 200 }); }
-      const bal = data.customerInfo?.balance ? parseFloat(data.customerInfo.balance) : 0;
-      const last = data.rechargeHistory?.[0];
-      let msg = `💰 *৳${bal.toFixed(2)}* (${prov.toUpperCase()})\n`;
-      if (data.customerInfo?.currentMonthConsumption) msg += `This month: ৳${data.customerInfo.currentMonthConsumption}\n`;
-      if (last) {
-        msg += `Last: ৳${last.rechargeAmount} on ${last.date}\n`;
-        if (prov === 'nesco') msg += last.status === 'Success' ? '✅ Auto-applied' : `⚠️ PIN: ${last.tokenNo.replace(/\s/g, '')}`;
+    // Balance
+    if (cmd === 'balance') {
+      const meter = parseMeter(arg) || user.primary;
+      if (!meter) {
+        await sendMsg(from, '❌ No primary meter. Send: balance 82044144');
+        return new Response('ok', { status: 200 });
       }
-      await sendMsg(from, msg);
-      return new Response('ok', { status: 200 });
-    }
-
-    if (text === 'token' || text === 'pin') {
-      const meter = user.primary;
-      if (!meter) { await sendMsg(from, '❌ No primary meter.'); return new Response('ok', { status: 200 }); }
-      const prov = getMeterProvider(user, meter);
-      const data = await fetchData(meter, prov);
-      if (data.error) { await sendMsg(from, `❌ ${data.error}`); return new Response('ok', { status: 200 }); }
-      const last = data.rechargeHistory?.[0];
-      if (!last) { await sendMsg(from, '❌ No recharge found.'); return new Response('ok', { status: 200 }); }
-      let msg = `🔑 *Last Token*\n\n${last.tokenNo.replace(/\s/g, '')}\n\n৳${last.rechargeAmount} | ${last.date}\n`;
-      if (prov === 'nesco') msg += last.status === 'Success' ? '✅ Auto-applied' : '⚠️ Enter this PIN';
-      else msg += last.status === 'Success' ? '✅ Successful' : last.status;
-      await sendMsg(from, msg);
-      return new Response('ok', { status: 200 });
-    }
-
-    // check command or bare number
-    let meter = text.startsWith('check ') ? text.replace('check', '').replace(/\D/g, '') : text.replace(/\D/g, '');
-    if (meter.length >= 8 && meter.length <= 12) {
       const prov = getMeterProvider(user, meter);
       await sendMsg(from, `⏳ Fetching from ${prov.toUpperCase()}...`);
       const data = await fetchData(meter, prov);
       if (data.error) { await sendMsg(from, `❌ ${data.error}`); return new Response('ok', { status: 200 }); }
       addMeter(user, meter, prov);
       await saveUser(from, user);
+      await sendMsg(from, formatBalance(data, prov));
+      return new Response('ok', { status: 200 });
+    }
+
+    // Token / PIN
+    if (cmd === 'token' || cmd === 'pin') {
+      const meter = parseMeter(arg) || user.primary;
+      if (!meter) {
+        await sendMsg(from, '❌ No primary meter. Send: token 82044144');
+        return new Response('ok', { status: 200 });
+      }
+      const prov = getMeterProvider(user, meter);
+      await sendMsg(from, `⏳ Fetching from ${prov.toUpperCase()}...`);
+      const data = await fetchData(meter, prov);
+      if (data.error) { await sendMsg(from, `❌ ${data.error}`); return new Response('ok', { status: 200 }); }
+      addMeter(user, meter, prov);
+      await saveUser(from, user);
+      await sendMsg(from, formatToken(data, prov));
+      return new Response('ok', { status: 200 });
+    }
+
+    // Check command or bare number
+    let meterNum = cmd === 'check' ? parseMeter(arg) : parseMeter(raw);
+    if (cmd === 'check' && !meterNum) meterNum = user.primary;
+    if (meterNum) {
+      const prov = getMeterProvider(user, meterNum);
+      await sendMsg(from, `⏳ Fetching from ${prov.toUpperCase()}...`);
+      const data = await fetchData(meterNum, prov);
+      if (data.error) { await sendMsg(from, `❌ ${data.error}`); return new Response('ok', { status: 200 }); }
+      addMeter(user, meterNum, prov);
+      await saveUser(from, user);
       await sendMsg(from, formatFull(data, prov));
       return new Response('ok', { status: 200 });
     }
 
-    await sendMsg(from, '⚡ Send a meter/account number or type *help*');
+    await sendMsg(from, '⚡ Send a meter/account number (8-12 digits) or type *help*');
   } catch (err) { console.error('WhatsApp error:', err); }
   return new Response('ok', { status: 200 });
 };

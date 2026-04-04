@@ -1,6 +1,6 @@
 import { getStore } from '@netlify/blobs';
 
-const SITE_URL = process.env.URL || 'https://nesco-meter.netlify.app';
+const SITE_URL = process.env.URL || 'https://bdmeter.netlify.app';
 
 async function fetchData(meter, provider) {
   const url = provider === 'desco'
@@ -15,17 +15,64 @@ async function getUser(userId) {
     return (await store.get(String(userId), { type: 'json' })) || { meters: [], primary: null, provider: 'nesco' };
   } catch { return { meters: [], primary: null, provider: 'nesco' }; }
 }
-async function saveUser(userId, data) { const store = getStore('discord-users'); await store.setJSON(String(userId), data); }
 
-function findMeter(user, number) { return user.meters.find(m => (typeof m === 'object' ? m.number : m) === number); }
-function getMeterProvider(user, number) { const m = findMeter(user, number); return (m && typeof m === 'object') ? m.provider || user.provider : user.provider || 'nesco'; }
+async function saveUser(userId, data) {
+  const store = getStore('discord-users');
+  await store.setJSON(String(userId), data);
+}
+
+function findMeter(user, number) {
+  return user.meters.find(m => (typeof m === 'object' ? m.number : m) === number);
+}
+
+function getMeterProvider(user, number) {
+  const m = findMeter(user, number);
+  return (m && typeof m === 'object') ? m.provider || user.provider : user.provider || 'nesco';
+}
+
 function addMeter(user, number, provider) {
   const exists = user.meters.find(m => (typeof m === 'object' ? m.number : m) === number);
   if (!exists) user.meters.push({ number, provider });
   else if (typeof exists === 'object') exists.provider = provider;
   if (!user.primary) user.primary = number;
 }
-function meterList(user) { return user.meters.map(m => typeof m === 'object' ? m : { number: m, provider: user.provider || 'nesco' }); }
+
+function meterList(user) {
+  return user.meters.map(m => typeof m === 'object' ? m : { number: m, provider: user.provider || 'nesco' });
+}
+
+function parseMeter(text) {
+  const cleaned = String(text || '').replace(/\D/g, '');
+  if (cleaned.length >= 8 && cleaned.length <= 12) return cleaned;
+  return null;
+}
+
+function formatBalance(data, prov) {
+  const c = data.customerInfo;
+  const last = data.rechargeHistory?.[0];
+  const balance = c?.balance ? parseFloat(c.balance) : 0;
+  let msg = `💰 **৳${balance.toFixed(2)}** (${(prov || 'nesco').toUpperCase()})\n`;
+  if (c?.balanceTime) msg += `As of ${c.balanceTime}\n`;
+  if (c?.currentMonthConsumption) msg += `This month: ৳${c.currentMonthConsumption}\n`;
+  if (last) {
+    msg += `Last: ৳${last.rechargeAmount} on ${last.date}\n`;
+    if (prov === 'nesco') {
+      msg += last.status === 'Success' ? '✅ Auto-applied' : `⚠️ PIN: \`${last.tokenNo.replace(/\s/g, '')}\``;
+    }
+  }
+  if (c?.minRecharge) msg += `\nMin recharge: ৳${c.minRecharge}`;
+  return msg;
+}
+
+function formatToken(data, prov) {
+  const last = data.rechargeHistory?.[0];
+  if (!last) return '❌ No recharge found.';
+  let msg = `🔑 **Last Token**\n\n\`${last.tokenNo.replace(/\s/g, '')}\`\n\n`;
+  msg += `৳${last.rechargeAmount} via ${last.medium || 'Online'} | ${last.date}\n`;
+  if (prov === 'nesco') msg += last.status === 'Success' ? '✅ Auto-applied' : '⚠️ Enter this PIN in your meter';
+  else msg += last.status === 'Success' ? '✅ Successful' : `Status: ${last.status}`;
+  return msg;
+}
 
 function buildEmbed(data, meter, prov) {
   const { customerInfo: c, rechargeHistory = [], monthlyUsage = [], dailyConsumption } = data;
@@ -104,15 +151,110 @@ function buildEmbed(data, meter, prov) {
   };
 }
 
-function respond(content) { return Response.json({ type: 4, data: typeof content === 'string' ? { content } : content }); }
+function respond(content) {
+  return Response.json({ type: 4, data: typeof content === 'string' ? { content } : content });
+}
+
+// Slash command definitions for registration
+const SLASH_COMMANDS = [
+  {
+    name: 'help',
+    description: 'Show available commands and usage guide',
+  },
+  {
+    name: 'check',
+    description: 'Full meter report with balance, history, and analytics',
+    options: [
+      { name: 'meter', type: 3, description: 'Meter or account number (8-12 digits)' },
+      { name: 'provider', type: 3, description: 'Electricity provider', choices: [{ name: 'NESCO', value: 'nesco' }, { name: 'DESCO', value: 'desco' }] },
+    ],
+  },
+  {
+    name: 'balance',
+    description: 'Quick balance check',
+    options: [
+      { name: 'meter', type: 3, description: 'Meter or account number (8-12 digits)' },
+    ],
+  },
+  {
+    name: 'token',
+    description: 'Last recharge token/PIN',
+    options: [
+      { name: 'meter', type: 3, description: 'Meter or account number (8-12 digits)' },
+    ],
+  },
+  {
+    name: 'pin',
+    description: 'Last recharge PIN (alias for /token)',
+    options: [
+      { name: 'meter', type: 3, description: 'Meter or account number (8-12 digits)' },
+    ],
+  },
+  {
+    name: 'provider',
+    description: 'Set your default electricity provider',
+    options: [
+      { name: 'provider', type: 3, description: 'Provider to set as default', required: true, choices: [{ name: 'NESCO', value: 'nesco' }, { name: 'DESCO', value: 'desco' }] },
+    ],
+  },
+  {
+    name: 'save',
+    description: 'Save a meter to your profile',
+    options: [
+      { name: 'meter', type: 3, description: 'Meter or account number (8-12 digits)', required: true },
+      { name: 'provider', type: 3, description: 'Provider for this meter', choices: [{ name: 'NESCO', value: 'nesco' }, { name: 'DESCO', value: 'desco' }] },
+    ],
+  },
+  {
+    name: 'primary',
+    description: 'Set your primary (default) meter',
+    options: [
+      { name: 'meter', type: 3, description: 'Meter or account number', required: true },
+    ],
+  },
+  {
+    name: 'meters',
+    description: 'List all saved meters',
+  },
+  {
+    name: 'remove',
+    description: 'Remove a saved meter',
+    options: [
+      { name: 'meter', type: 3, description: 'Meter or account number to remove', required: true },
+    ],
+  },
+];
 
 export default async (req) => {
-  if (req.method === 'GET') return Response.json({ status: 'ok', bot: 'Prepaid Meter Bot (NESCO + DESCO)' });
+  const url = new URL(req.url);
+
+  // GET /api/discord — health check
+  if (req.method === 'GET') {
+    // GET /api/discord?register=true&app_id=XXX&bot_token=XXX — register slash commands
+    if (url.searchParams.get('register') === 'true') {
+      const appId = url.searchParams.get('app_id');
+      const botToken = url.searchParams.get('bot_token');
+      if (!appId || !botToken) {
+        return Response.json({ error: 'Provide app_id and bot_token query params' }, { status: 400 });
+      }
+      const res = await fetch(`https://discord.com/api/v10/applications/${appId}/commands`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bot ${botToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(SLASH_COMMANDS),
+      });
+      const result = await res.json();
+      return Response.json({ ok: res.ok, status: res.status, commands: result });
+    }
+    return Response.json({ status: 'ok', bot: 'BD Meter Bot (NESCO + DESCO)', commands: SLASH_COMMANDS.map(c => c.name) });
+  }
 
   try {
     const body = await req.json();
+
+    // Discord ping verification
     if (body.type === 1) return Response.json({ type: 1 });
 
+    // Slash command interactions
     if (body.type === 2) {
       const userId = body.member?.user?.id || body.user?.id;
       const cmdName = body.data?.name;
@@ -120,17 +262,39 @@ export default async (req) => {
       (body.data?.options || []).forEach(o => { opts[o.name] = o.value; });
       const user = userId ? await getUser(userId) : { meters: [], primary: null, provider: 'nesco' };
 
+      // Help
+      if (cmdName === 'help') {
+        let msg = `⚡ **BD Meter Bot**\nSupports **NESCO** & **DESCO**\n\n`;
+        msg += `**Commands:**\n`;
+        msg += `\`/check [meter]\` — Full meter report\n`;
+        msg += `\`/balance [meter]\` — Quick balance\n`;
+        msg += `\`/token [meter]\` or \`/pin [meter]\` — Last recharge PIN\n`;
+        msg += `\`/provider nesco|desco\` — Set default provider\n`;
+        msg += `\`/save meter\` — Save a meter\n`;
+        msg += `\`/primary meter\` — Set primary meter\n`;
+        msg += `\`/meters\` — List saved meters\n`;
+        msg += `\`/remove meter\` — Remove a meter\n\n`;
+        msg += `Default provider: **${(user.provider || 'nesco').toUpperCase()}**\n`;
+        if (user.primary) msg += `Primary meter: \`${user.primary}\`\n`;
+        msg += `\n🌐 ${SITE_URL}`;
+        return respond(msg);
+      }
+
+      // Provider
       if (cmdName === 'provider') {
         const prov = String(opts.provider || '').toLowerCase();
-        if (prov !== 'nesco' && prov !== 'desco') return respond(`❌ Use \`/provider provider:nesco\` or \`desco\`. Current: **${(user.provider||'nesco').toUpperCase()}**`);
+        if (prov !== 'nesco' && prov !== 'desco') {
+          return respond(`❌ Use \`/provider provider:nesco\` or \`desco\`.\nCurrent: **${(user.provider || 'nesco').toUpperCase()}**`);
+        }
         user.provider = prov;
         if (userId) await saveUser(userId, user);
         return respond(`✅ Default provider: **${prov.toUpperCase()}**`);
       }
 
+      // Check
       if (cmdName === 'check' || cmdName === 'meter') {
-        const meter = String(opts.meter || user.primary || '').replace(/\D/g, '');
-        if (!meter || meter.length < 8) return respond('❌ Provide a meter number: `/check meter:82044144`');
+        const meter = parseMeter(opts.meter) || user.primary;
+        if (!meter) return respond('❌ Provide a meter number: `/check meter:82044144`');
         const prov = opts.provider?.toLowerCase() || getMeterProvider(user, meter);
         const data = await fetchData(meter, prov);
         if (data.error) return respond(`❌ ${data.error}`);
@@ -138,70 +302,79 @@ export default async (req) => {
         return respond(buildEmbed(data, meter, prov));
       }
 
+      // Balance
       if (cmdName === 'balance') {
-        const meter = String(opts.meter || user.primary || '').replace(/\D/g, '');
-        if (!meter) return respond('❌ No primary meter. Use `/check` first.');
+        const meter = parseMeter(opts.meter) || user.primary;
+        if (!meter) return respond('❌ No primary meter. Use `/check` first or provide a meter number.');
         const prov = getMeterProvider(user, meter);
         const data = await fetchData(meter, prov);
         if (data.error) return respond(`❌ ${data.error}`);
-        const bal = data.customerInfo?.balance ? parseFloat(data.customerInfo.balance) : 0;
-        const last = data.rechargeHistory?.[0];
-        let msg = `💰 **৳${bal.toFixed(2)}** (${prov.toUpperCase()})\n`;
-        if (data.customerInfo?.currentMonthConsumption) msg += `This month: ৳${data.customerInfo.currentMonthConsumption}\n`;
-        if (last) {
-          msg += `Last: ৳${last.rechargeAmount} on ${last.date}\n`;
-          if (prov === 'nesco') msg += last.status === 'Success' ? '✅ Auto-applied' : `⚠️ PIN: \`${last.tokenNo.replace(/\s/g, '')}\``;
-        }
-        return respond(msg);
+        if (userId) { addMeter(user, meter, prov); await saveUser(userId, user); }
+        return respond(formatBalance(data, prov));
       }
 
-      if (cmdName === 'token') {
-        const meter = String(opts.meter || user.primary || '').replace(/\D/g, '');
-        if (!meter) return respond('❌ No primary meter.');
+      // Token / PIN
+      if (cmdName === 'token' || cmdName === 'pin') {
+        const meter = parseMeter(opts.meter) || user.primary;
+        if (!meter) return respond('❌ No primary meter. Use `/check` first or provide a meter number.');
         const prov = getMeterProvider(user, meter);
         const data = await fetchData(meter, prov);
         if (data.error) return respond(`❌ ${data.error}`);
-        const last = data.rechargeHistory?.[0];
-        if (!last) return respond('❌ No recharge found.');
-        return respond(`🔑 \`${last.tokenNo.replace(/\s/g, '')}\`\n৳${last.rechargeAmount} | ${last.date}\n${last.status === 'Success' ? '✅ Applied' : '⚠️ Enter PIN'}`);
+        if (userId) { addMeter(user, meter, prov); await saveUser(userId, user); }
+        return respond(formatToken(data, prov));
       }
 
+      // Save
       if (cmdName === 'save') {
-        const meter = String(opts.meter || '').replace(/\D/g, '');
-        if (!meter || meter.length < 8) return respond('❌ Usage: `/save meter:82044144`');
-        addMeter(user, meter, opts.provider?.toLowerCase() || user.provider || 'nesco');
+        const meter = parseMeter(opts.meter);
+        if (!meter) return respond('❌ Invalid meter number. Must be 8-12 digits.\nUsage: `/save meter:82044144`');
+        const prov = opts.provider?.toLowerCase() || user.provider || 'nesco';
+        addMeter(user, meter, prov);
         if (userId) await saveUser(userId, user);
-        return respond(`✅ \`${meter}\` saved (${(opts.provider || user.provider || 'nesco').toUpperCase()})`);
+        return respond(`✅ \`${meter}\` saved (${prov.toUpperCase()})! ${user.meters.length} meter(s) total.`);
       }
 
+      // Primary
       if (cmdName === 'primary') {
-        const meter = String(opts.meter || '').replace(/\D/g, '');
+        const meter = parseMeter(opts.meter);
+        if (!meter) return respond('❌ Invalid meter number.');
         if (!findMeter(user, meter)) return respond('❌ Save it first with `/save`');
         user.primary = meter;
         if (userId) await saveUser(userId, user);
         return respond(`⭐ Primary: \`${meter}\``);
       }
 
-      if (cmdName === 'meters') {
+      // Meters list
+      if (cmdName === 'meters' || cmdName === 'list') {
         const list = meterList(user);
-        if (!list.length) return respond('📋 No saved meters.');
-        return respond(`📋 **Meters (${list.length})**\n${list.map((m,i) => `${i+1}. \`${m.number}\` [${m.provider.toUpperCase()}]${m.number===user.primary?' ⭐':''}`).join('\n')}\nDefault: **${(user.provider||'nesco').toUpperCase()}**`);
+        if (!list.length) return respond('📋 No saved meters. Use `/check` to look up a meter first.');
+        let msg = `📋 **Saved Meters (${list.length})**\n\n`;
+        list.forEach((m, i) => {
+          msg += `${i + 1}. \`${m.number}\` [${(m.provider || 'nesco').toUpperCase()}]${m.number === user.primary ? ' ⭐' : ''}\n`;
+        });
+        msg += `\nDefault: **${(user.provider || 'nesco').toUpperCase()}**`;
+        return respond(msg);
       }
 
+      // Remove
       if (cmdName === 'remove') {
-        const meter = String(opts.meter || '').replace(/\D/g, '');
+        const meter = parseMeter(opts.meter);
+        if (!meter) return respond('❌ Invalid meter number.');
+        const before = user.meters.length;
         user.meters = user.meters.filter(m => (typeof m === 'object' ? m.number : m) !== meter);
+        if (user.meters.length === before) return respond(`❌ Meter \`${meter}\` not found in saved list.`);
         if (user.primary === meter) user.primary = meterList(user)[0]?.number || null;
         if (userId) await saveUser(userId, user);
         return respond(`🗑️ \`${meter}\` removed.`);
       }
 
-      return respond('❌ Try `/check`, `/balance`, `/token`, `/save`, `/meters`, `/remove`, `/primary`, `/provider`');
+      return respond('❌ Unknown command. Try `/help` for a list of commands.');
     }
+
     return Response.json({ type: 1 });
   } catch (err) {
     console.error('Discord error:', err);
-    return respond('❌ Something went wrong.');
+    return respond('❌ Something went wrong. Please try again.');
   }
 };
 
