@@ -1,6 +1,7 @@
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Legend, ComposedChart, Line, Bar,
+  ReferenceLine,
 } from 'recharts'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -49,6 +50,8 @@ export default function UsageChart({ monthlyUsage, t }) {
     rate: m.usedKwh > 0 ? +(m.usedElectricity / m.usedKwh).toFixed(2) : 0,
     totalUsage: m.totalUsage,
   }))
+
+  const rechargeMonths = chartData.filter(d => d.totalRecharge > 0).map(d => d.month)
 
   const views = [
     { key: 'cost', label: t('Cost') },
@@ -118,7 +121,10 @@ export default function UsageChart({ monthlyUsage, t }) {
                 <Bar dataKey="vat" name="VAT" fill="#f59e0b" radius={[2, 2, 0, 0]} stackId="extra" />
                 <Bar dataKey="demandCharge" name="Demand" fill="#8b5cf6" radius={[2, 2, 0, 0]} stackId="extra" />
                 <Bar dataKey="meterRent" name="Meter Rent" fill="#94a3b8" radius={[2, 2, 0, 0]} stackId="extra" />
-                <Line type="monotone" dataKey="totalRecharge" name="Recharge" stroke="#10b981" strokeWidth={2} dot={{ r: 4, fill: '#10b981', stroke: '#ffffff', strokeWidth: 2 }} />
+                {rechargeMonths.map((month) => (
+                  <ReferenceLine key={month} x={month} stroke="#10b981" strokeDasharray="3 3" strokeOpacity={0.4} />
+                ))}
+                <Line type="monotone" dataKey="totalRecharge" name="Recharge" stroke="#10b981" strokeWidth={2} dot={{ r: 5, fill: '#10b981', stroke: '#ffffff', strokeWidth: 2 }} activeDot={{ r: 7, fill: '#10b981', stroke: '#ffffff', strokeWidth: 2 }} />
               </ComposedChart>
             ) : view === 'kwh' ? (
               <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>

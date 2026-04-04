@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { haptic } from '../utils/haptic'
 import QRCodeButton from './QRCode'
+import RechargeLink from './RechargeLink'
 
 function ShareButton({ meterNo, provider, t }) {
   const [status, setStatus] = useState('idle')
@@ -80,7 +81,7 @@ function ShareButton({ meterNo, provider, t }) {
   )
 }
 
-export default function CustomerInfo({ data, meterNo, onReset, isSaved, onSave, t }) {
+export default function CustomerInfo({ data, meterNo, onReset, isSaved, onSave, nickname, t }) {
   const { customerInfo } = data
 
   const fields = [
@@ -109,7 +110,10 @@ export default function CustomerInfo({ data, meterNo, onReset, isSaved, onSave, 
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
         >
-          <h3 className="text-lg font-semibold text-[var(--color-ink)] tracking-tight">{customerInfo?.name || 'Customer'}</h3>
+          <h3 className="text-lg font-semibold text-[var(--color-ink)] tracking-tight">
+            {customerInfo?.name || 'Customer'}
+            {nickname && <span className="text-[var(--color-ink)]/50 font-normal"> ({nickname})</span>}
+          </h3>
           <p className="text-sm text-[var(--color-ink)]/70 mt-1">
             {customerInfo?.address || 'Nesco Prepaid Customer'}
           </p>
@@ -132,6 +136,7 @@ export default function CustomerInfo({ data, meterNo, onReset, isSaved, onSave, 
               {t('Save Meter')}
             </motion.button>
           )}
+          <RechargeLink meterNo={meterNo} t={t} />
           <ShareButton meterNo={meterNo} provider={data.provider} t={t} />
           <QRCodeButton meterNo={meterNo} provider={data.provider} t={t} />
           <motion.button

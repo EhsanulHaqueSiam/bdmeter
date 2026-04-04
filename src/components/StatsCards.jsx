@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import AnimatedNumber from './AnimatedNumber'
+import Sparkline from './Sparkline'
 
 function computeForecast(data) {
   const { customerInfo, monthlyUsage, dailyConsumption, rechargeHistory } = data
@@ -116,6 +117,10 @@ export default function StatsCards({ data, t }) {
 
   const forecast = computeForecast(data)
 
+  // Sparkline data: last 6 months (reversed so oldest first for the chart)
+  const balanceSparkData = monthlyUsage.slice(0, 6).map(m => m.endBalance).reverse()
+  const usageSparkData = monthlyUsage.slice(0, 6).map(m => m.usedKwh).reverse()
+
   const cards = [
     {
       label: t('Balance'),
@@ -124,6 +129,8 @@ export default function StatsCards({ data, t }) {
       numDecimals: 2,
       value: `৳${balance.toFixed(2)}`,
       sub: customerInfo?.balanceTime ? `As of ${customerInfo.balanceTime}` : 'Latest',
+      sparkData: balanceSparkData,
+      sparkColor: '#10b981',
     },
     {
       label: t('Last Recharge'),
@@ -143,6 +150,8 @@ export default function StatsCards({ data, t }) {
       value: latestMonth ? `${latestMonth.usedKwh} kWh` : 'N/A',
       sub: latestMonth ? `৳${latestMonth.usedElectricity.toFixed(0)} elec cost` : '',
       change: kwhChange,
+      sparkData: usageSparkData,
+      sparkColor: '#f59e0b',
     },
     {
       label: t('Cost / kWh'),
@@ -206,7 +215,7 @@ export default function StatsCards({ data, t }) {
               </div>
             </div>
 
-            <div>
+            <div className="relative">
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -225,6 +234,11 @@ export default function StatsCards({ data, t }) {
                 )}
               </motion.div>
               <div className="text-sm text-[var(--color-ink)]/70">{card.sub}</div>
+              {card.sparkData && card.sparkData.length >= 2 && (
+                <div className="absolute bottom-0 right-0">
+                  <Sparkline data={card.sparkData} color={card.sparkColor} />
+                </div>
+              )}
             </div>
           </motion.div>
         ))}

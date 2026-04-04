@@ -4,8 +4,10 @@ import MeterInput from './components/MeterInput'
 import PullToRefresh from './components/PullToRefresh'
 import DataManager from './components/DataManager'
 import OnboardingTour from './components/OnboardingTour'
+import Confetti from './components/Confetti'
 import useMeters from './hooks/useMeters'
 import useLanguage from './hooks/useLanguage'
+import useSearchHistory from './hooks/useSearchHistory'
 
 const Dashboard = lazy(() => import('./components/Dashboard'))
 
@@ -79,10 +81,15 @@ function App() {
   const [error, setError] = useState(null)
   const [meterNo, setMeterNo] = useState('')
   const [provider, setProvider] = useState('nesco')
-  const { meters, addMeter, removeMeter, setPrimary, getPrimary } = useMeters()
+  const { meters, addMeter, removeMeter, setPrimary, setNickname, getPrimary } = useMeters()
   const { lang, setLang, t } = useLanguage()
+  const { history: searchHistory, addSearch, clearHistory: clearSearchHistory } = useSearchHistory()
   const requestRef = useRef(0)
   const notifRequested = useRef(false)
+  const [showConfetti, setShowConfetti] = useState(false)
+  const confettiShownRef = useRef(false)
+  const [swipeDirection, setSwipeDirection] = useState(0)
+  const touchStartRef = useRef(null)
 
   // Dark mode state
   const [theme, setThemeState] = useState(getInitialTheme)
@@ -169,7 +176,10 @@ function App() {
       const newData = { ...json, provider: prov }
       setData(newData)
       setLastUpdated(new Date())
-      if (save) addMeter(meter, json.customerInfo?.name || '', prov)
+      if (save) {
+        addMeter(meter, json.customerInfo?.name || '', prov)
+        addSearch(meter, prov)
+      }
       // Update URL with meter info for sharing
       const url = new URL(window.location)
       url.searchParams.set('meter', meter)
@@ -177,6 +187,15 @@ function App() {
       window.history.replaceState({}, '', url)
       // Check low balance notification
       checkLowBalance(newData, meter)
+      // Confetti for successful last recharge
+      if (!confettiShownRef.current && json.rechargeHistory?.[0]) {
+        const lastStatus = json.rechargeHistory[0].status
+        if (lastStatus === 'Success' || lastStatus === 'Successful') {
+          confettiShownRef.current = true
+          setShowConfetti(true)
+          setTimeout(() => setShowConfetti(false), 1500)
+        }
+      }
     } catch (err) {
       if (requestId !== requestRef.current) return
       setError(err.message)
@@ -225,6 +244,37 @@ function App() {
       if (autoRefreshRef.current) clearInterval(autoRefreshRef.current)
     }
   }, [data, meterNo]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Swipe between meters
+  const handleTouchStart = useCallback((e) => {
+    if (meters.length < 2 || !data) return
+    touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+  }, [meters.length, data])
+
+  const handleTouchEnd = useCallback((e) => {
+    if (!touchStartRef.current || meters.length < 2 || !data) return
+    const dx = e.changedTouches[0].clientX - touchStartRef.current.x
+    const dy = e.changedTouches[0].clientY - touchStartRef.current.y
+    touchStartRef.current = null
+    // Only horizontal swipes (not vertical scrolling)
+    if (Math.abs(dx) < 100 || Math.abs(dy) > Math.abs(dx)) return
+    const currentIdx = meters.findIndex(m => m.number === meterNo && (m.provider || 'nesco') === (data?.provider || provider))
+    if (currentIdx < 0) return
+    let nextIdx
+    if (dx < 0) {
+      // Swipe left -> next
+      nextIdx = (currentIdx + 1) % meters.length
+      setSwipeDirection(1)
+    } else {
+      // Swipe right -> prev
+      nextIdx = (currentIdx - 1 + meters.length) % meters.length
+      setSwipeDirection(-1)
+    }
+    const next = meters[nextIdx]
+    switchMeter(next.number, next.provider || 'nesco')
+  }, [meters, meterNo, data, provider]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const currentMeterIndex = data ? meters.findIndex(m => m.number === meterNo && (m.provider || 'nesco') === (data?.provider || provider)) : -1
 
   // Pull-to-refresh handler
   const handlePullRefresh = useCallback(() => {
@@ -385,7 +435,14 @@ function App() {
         </nav>
       </motion.header>
 
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+      {/* Confetti */}
+      {showConfetti && <Confetti />}
+
+      <main
+        className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         <PullToRefresh onRefresh={handlePullRefresh}>
           <AnimatePresence mode="wait">
             {!data && !loading && (
@@ -397,8 +454,11 @@ function App() {
                   onSwitchMeter={switchMeter}
                   onRemoveMeter={removeMeter}
                   onSetPrimary={setPrimary}
+                  onSetNickname={setNickname}
                   provider={provider}
                   onProviderChange={setProvider}
+                  searchHistory={searchHistory}
+                  onClearHistory={clearSearchHistory}
                   t={t}
                 />
               </motion.div>
@@ -409,7 +469,13 @@ function App() {
               </motion.div>
             )}
             {data && (
-              <motion.div key="dashboard" {...pageTransition}>
+              <motion.div
+                key={`dashboard-${meterNo}`}
+                initial={{ opacity: 0, x: swipeDirection * 50, y: swipeDirection === 0 ? 20 : 0 }}
+                animate={{ opacity: 1, x: 0, y: 0 }}
+                exit={{ opacity: 0, x: swipeDirection * -50, y: swipeDirection === 0 ? -20 : 0 }}
+                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              >
                 <Suspense fallback={<LoadingSkeleton provider={provider} t={t} />}>
                   <Dashboard
                     data={data}
@@ -418,9 +484,27 @@ function App() {
                     isSaved={meters.some(m => m.number === meterNo && (m.provider || 'nesco') === (data?.provider || provider))}
                     onSave={() => addMeter(meterNo, data?.customerInfo?.name || '', data?.provider || provider)}
                     meters={meters}
+                    nickname={meters.find(m => m.number === meterNo && (m.provider || 'nesco') === (data?.provider || provider))?.nickname}
                     t={t}
                   />
                 </Suspense>
+                {/* Swipe dots indicator */}
+                {meters.length >= 2 && currentMeterIndex >= 0 && (
+                  <div className="flex justify-center gap-1.5 mt-6 print:hidden">
+                    {meters.map((m, i) => (
+                      <motion.button
+                        key={`${m.provider || 'nesco'}:${m.number}`}
+                        onClick={() => { setSwipeDirection(i > currentMeterIndex ? 1 : -1); switchMeter(m.number, m.provider || 'nesco') }}
+                        className={`rounded-full transition-all duration-300 cursor-pointer ${
+                          i === currentMeterIndex
+                            ? 'w-6 h-2 bg-[var(--color-ink)]/60'
+                            : 'w-2 h-2 bg-[var(--color-ink)]/20 hover:bg-[var(--color-ink)]/40'
+                        }`}
+                        aria-label={`Switch to meter ${m.number}`}
+                      />
+                    ))}
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
@@ -436,6 +520,7 @@ function App() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs font-medium text-[var(--color-ink)]/40">
           <p>Data sourced directly from {activeProvider === 'desco' ? 'DESCO' : 'NESCO'}. Not an official product.</p>
           <p className="mt-2">Designed for clarity and utility.</p>
+          <p className="mt-2 text-[var(--color-ink)]/30">{t('Tip: Add to home screen for quick access to your balance')}</p>
           {data && lastUpdated && (
             <p className="mt-2 text-[var(--color-ink)]/30">Updated {getUpdatedAgo()}</p>
           )}

@@ -9,6 +9,7 @@ function normalizeMeter(entry, fallbackProvider = DEFAULT_PROVIDER) {
     return {
       number: entry,
       name: '',
+      nickname: '',
       provider: fallbackProvider,
       primary: false,
       addedAt: Date.now(),
@@ -18,6 +19,7 @@ function normalizeMeter(entry, fallbackProvider = DEFAULT_PROVIDER) {
   return {
     number: String(entry.number),
     name: entry.name || '',
+    nickname: entry.nickname || '',
     provider: entry.provider || fallbackProvider,
     primary: Boolean(entry.primary),
     addedAt: entry.addedAt || Date.now(),
@@ -63,7 +65,7 @@ export default function useMeters() {
         return updated
       }
       const isPrimary = prev.length === 0
-      const next = [...prev, { number: meterNo, name: name || '', provider: meterProvider, primary: isPrimary, addedAt: Date.now() }]
+      const next = [...prev, { number: meterNo, name: name || '', nickname: '', provider: meterProvider, primary: isPrimary, addedAt: Date.now() }]
       save(next)
       return next
     })
@@ -102,9 +104,23 @@ export default function useMeters() {
     })
   }, [])
 
+  const setNickname = useCallback((number, provider, nickname) => {
+    const meterNo = String(number)
+    const meterProvider = provider || DEFAULT_PROVIDER
+    setMeters(prev => {
+      const next = prev.map((m) =>
+        sameMeter(m, meterNo, meterProvider)
+          ? { ...m, nickname: nickname || '' }
+          : m
+      )
+      save(next)
+      return next
+    })
+  }, [])
+
   const getPrimary = useCallback(() => {
     return meters.find(m => m.primary) || meters[0] || null
   }, [meters])
 
-  return { meters, addMeter, removeMeter, setPrimary, getPrimary }
+  return { meters, addMeter, removeMeter, setPrimary, setNickname, getPrimary }
 }

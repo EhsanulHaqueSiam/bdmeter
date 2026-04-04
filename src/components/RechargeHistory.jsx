@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { exportRechargesAsICS } from '../utils/calendarExport'
 
 function CopyButton({ text }) {
   const [status, setStatus] = useState('idle')
@@ -131,6 +132,19 @@ export default function RechargeHistory({ rechargeHistory, provider, t }) {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => exportRechargesAsICS(filtered, provider)}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium border border-[var(--color-outline)] bg-[var(--color-surface)] text-[var(--color-ink)]/70 hover:bg-[var(--color-surface-dim)] cursor-pointer transition-colors"
+            aria-label={t('Export Calendar')}
+            title={t('Export Calendar')}
+          >
+            <svg className="w-3.5 h-3.5 inline mr-1" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+            </svg>
+            .ics
+          </motion.button>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}

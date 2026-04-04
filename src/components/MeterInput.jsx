@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { haptic } from '../utils/haptic'
 
@@ -11,8 +11,11 @@ const fadeUp = {
   animate: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } },
 }
 
-export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter, onRemoveMeter, onSetPrimary, provider, onProviderChange, t }) {
+export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter, onRemoveMeter, onSetPrimary, onSetNickname, provider, onProviderChange, searchHistory = [], onClearHistory, t }) {
   const [meter, setMeter] = useState('')
+  const [editingNickname, setEditingNickname] = useState(null)
+  const [nicknameValue, setNicknameValue] = useState('')
+  const nicknameInputRef = useRef(null)
   const maxLen = provider === 'desco' ? 12 : 11
   const validLengths = provider === 'desco' ? [8, 9, 11, 12] : [8, 11]
   const isValid = /^\d+$/.test(meter) && validLengths.includes(meter.length)
@@ -133,9 +136,9 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
           {error && (
             <motion.div
               initial={{ opacity: 0, y: -10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
+              animate={{ opacity: 1, y: 0, scale: 1, x: [0, -5, 5, -5, 5, 0] }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
               className="max-w-lg mx-auto mt-4 px-6 py-4 bg-red-50 text-red-600 rounded-xl border border-red-100 text-sm font-medium"
               role="alert"
               aria-live="polite"
@@ -145,6 +148,47 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
           )}
         </AnimatePresence>
 
+        {/* Recent Searches */}
+        <AnimatePresence>
+          {searchHistory.length > 0 && meters.length === 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+              className="pt-8 max-w-lg mx-auto"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-ink)]/50">
+                  {t('Recent Searches')}
+                </h3>
+                {onClearHistory && (
+                  <button
+                    onClick={onClearHistory}
+                    className="text-xs font-medium text-[var(--color-ink)]/40 hover:text-[var(--color-danger)] transition-colors cursor-pointer"
+                  >
+                    {t('Clear')}
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {searchHistory.map((s) => (
+                  <motion.button
+                    key={`${s.provider}:${s.number}`}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => { haptic(); onSwitchMeter(s.number, s.provider || 'nesco') }}
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-mono font-medium bg-[var(--color-surface)] border border-[var(--color-outline)] text-[var(--color-ink)] hover:bg-[var(--color-surface-dim)] transition-colors cursor-pointer"
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${(s.provider || 'nesco') === 'desco' ? 'bg-[var(--color-desco)]' : 'bg-[var(--color-nesco)]'}`} />
+                    {s.number}
+                  </motion.button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Saved Meters */}
         <AnimatePresence>
           {meters.length > 0 && (
             <motion.div
@@ -159,61 +203,110 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
                 </h3>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {meters.map((m, i) => (
-                  <motion.div
-                    key={`${m.provider || 'nesco'}:${m.number}`}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: i * 0.06, ease: [0.16, 1, 0.3, 1] }}
-                    whileHover={{ y: -3, boxShadow: '0 8px 25px -5px rgba(0,0,0,0.08)' }}
-                    whileTap={{ scale: 0.98 }}
-                    className="group relative bg-[var(--color-surface)] border border-[var(--color-outline)] rounded-2xl p-5 shadow-sm cursor-pointer"
-                    onClick={() => { haptic(); onSwitchMeter(m.number, m.provider || 'nesco') }}
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <span className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                        (m.provider || 'nesco') === 'desco' ? 'bg-orange-50 text-[var(--color-desco)]' : 'bg-blue-50 text-[var(--color-nesco)]'
-                      }`}>
-                        {m.provider || 'nesco'}
-                      </span>
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {!m.primary && (
+                {meters.map((m, i) => {
+                  const meterKey = `${m.provider || 'nesco'}:${m.number}`
+                  const isEditing = editingNickname === meterKey
+                  return (
+                    <motion.div
+                      key={meterKey}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, delay: i * 0.06, ease: [0.16, 1, 0.3, 1] }}
+                      whileHover={{ y: -3, boxShadow: '0 8px 25px -5px rgba(0,0,0,0.08)' }}
+                      whileTap={isEditing ? {} : { scale: 0.98 }}
+                      className="group relative bg-[var(--color-surface)] border border-[var(--color-outline)] rounded-2xl p-5 shadow-sm cursor-pointer"
+                      onClick={() => { if (!isEditing) { haptic(); onSwitchMeter(m.number, m.provider || 'nesco') } }}
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <span className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                          (m.provider || 'nesco') === 'desco' ? 'bg-orange-50 text-[var(--color-desco)]' : 'bg-blue-50 text-[var(--color-nesco)]'
+                        }`}>
+                          {m.provider || 'nesco'}
+                        </span>
+                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {/* Edit nickname button */}
                           <motion.button
                             whileHover={{ scale: 1.2 }}
                             whileTap={{ scale: 0.9 }}
-                            onClick={(e) => { e.stopPropagation(); onSetPrimary(m.number, m.provider || 'nesco') }}
-                            className="text-[var(--color-ink)]/40 hover:text-[var(--color-warning)] transition-colors p-1"
-                            title={t('Set as Default')}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setEditingNickname(meterKey)
+                              setNicknameValue(m.nickname || '')
+                              setTimeout(() => nicknameInputRef.current?.focus(), 50)
+                            }}
+                            className="text-[var(--color-ink)]/40 hover:text-[var(--color-nesco)] transition-colors p-1"
+                            title={t('Edit nickname')}
                           >
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z" /></svg>
                           </motion.button>
-                        )}
-                        <motion.button
-                          whileHover={{ scale: 1.2 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={(e) => { e.stopPropagation(); onRemoveMeter(m.number, m.provider || 'nesco') }}
-                          className="text-[var(--color-ink)]/40 hover:text-[var(--color-danger)] transition-colors p-1"
-                          title={t('Remove')}
-                        >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </motion.button>
+                          {!m.primary && (
+                            <motion.button
+                              whileHover={{ scale: 1.2 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={(e) => { e.stopPropagation(); onSetPrimary(m.number, m.provider || 'nesco') }}
+                              className="text-[var(--color-ink)]/40 hover:text-[var(--color-warning)] transition-colors p-1"
+                              title={t('Set as Default')}
+                            >
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                            </motion.button>
+                          )}
+                          <motion.button
+                            whileHover={{ scale: 1.2 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={(e) => { e.stopPropagation(); onRemoveMeter(m.number, m.provider || 'nesco') }}
+                            className="text-[var(--color-ink)]/40 hover:text-[var(--color-danger)] transition-colors p-1"
+                            title={t('Remove')}
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </motion.button>
+                        </div>
                       </div>
-                    </div>
-                    <div>
-                      <div className="font-mono text-xl font-semibold text-[var(--color-ink)] flex items-center gap-2">
-                        {m.number}
-                        {m.primary && (
-                          <motion.span
-                            animate={{ scale: [1, 1.3, 1] }}
-                            transition={{ duration: 2, repeat: Infinity, repeatDelay: 4 }}
-                            className="w-1.5 h-1.5 rounded-full bg-[var(--color-warning)]"
-                          />
+                      <div>
+                        {/* Nickname display/edit */}
+                        {isEditing ? (
+                          <div className="mb-2" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              ref={nicknameInputRef}
+                              type="text"
+                              value={nicknameValue}
+                              onChange={(e) => setNicknameValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  onSetNickname?.(m.number, m.provider || 'nesco', nicknameValue)
+                                  setEditingNickname(null)
+                                } else if (e.key === 'Escape') {
+                                  setEditingNickname(null)
+                                }
+                              }}
+                              onBlur={() => {
+                                onSetNickname?.(m.number, m.provider || 'nesco', nicknameValue)
+                                setEditingNickname(null)
+                              }}
+                              placeholder={t('Set nickname')}
+                              className="w-full px-2 py-1 text-sm font-medium rounded-lg border border-[var(--color-outline)] bg-[var(--color-surface-dim)] text-[var(--color-ink)] outline-none focus:ring-2 focus:ring-[var(--color-nesco)]/20 placeholder:text-[var(--color-ink)]/30"
+                              maxLength={30}
+                            />
+                          </div>
+                        ) : (
+                          m.nickname && (
+                            <div className="text-sm font-semibold text-[var(--color-ink)]/80 mb-1 truncate">{m.nickname}</div>
+                          )
                         )}
+                        <div className="font-mono text-xl font-semibold text-[var(--color-ink)] flex items-center gap-2">
+                          {m.number}
+                          {m.primary && (
+                            <motion.span
+                              animate={{ scale: [1, 1.3, 1] }}
+                              transition={{ duration: 2, repeat: Infinity, repeatDelay: 4 }}
+                              className="w-1.5 h-1.5 rounded-full bg-[var(--color-warning)]"
+                            />
+                          )}
+                        </div>
+                        {m.name && <div className="text-sm font-medium text-[var(--color-ink)]/60 mt-1 truncate">{m.name}</div>}
                       </div>
-                      {m.name && <div className="text-sm font-medium text-[var(--color-ink)]/60 mt-1 truncate">{m.name}</div>}
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  )
+                })}
               </div>
             </motion.div>
           )}

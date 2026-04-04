@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio';
+import { checkRateLimit } from './rateLimit.mjs';
 
 const BASE_URL = 'https://customer.nesco.gov.bd';
 const PANEL_URL = `${BASE_URL}/pre/panel`;
@@ -155,6 +156,14 @@ export default async (req) => {
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type',
       },
+    });
+  }
+
+  const { limited } = await checkRateLimit(req);
+  if (limited) {
+    return Response.json({ error: 'Too many requests. Please try again later.' }, {
+      status: 429,
+      headers: { 'Access-Control-Allow-Origin': '*', 'Retry-After': '60' },
     });
   }
 

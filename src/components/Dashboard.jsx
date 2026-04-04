@@ -125,7 +125,7 @@ function PrintButton({ t }) {
   )
 }
 
-export default function Dashboard({ data, meterNo, onReset, isSaved, onSave, meters, t }) {
+export default function Dashboard({ data, meterNo, onReset, isSaved, onSave, meters, nickname, t }) {
   return (
     <motion.div
       variants={stagger}
@@ -141,7 +141,7 @@ export default function Dashboard({ data, meterNo, onReset, isSaved, onSave, met
         <ExportDropdown data={data} t={t} />
       </motion.div>
       <motion.div variants={fadeUp}>
-        <CustomerInfo data={data} meterNo={meterNo} onReset={onReset} isSaved={isSaved} onSave={onSave} t={t} />
+        <CustomerInfo data={data} meterNo={meterNo} onReset={onReset} isSaved={isSaved} onSave={onSave} nickname={nickname} t={t} />
       </motion.div>
       <motion.div variants={fadeUp}>
         <StatsCards data={data} t={t} />

@@ -1,4 +1,5 @@
 import https from 'node:https';
+import { checkRateLimit } from './rateLimit.mjs';
 
 // DESCO's SSL cert has an incomplete chain — skip verification for their domain
 const agent = new https.Agent({ rejectUnauthorized: false });
@@ -49,6 +50,14 @@ export default async (req) => {
     return new Response(null, {
       status: 204,
       headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' },
+    });
+  }
+
+  const { limited } = await checkRateLimit(req);
+  if (limited) {
+    return Response.json({ error: 'Too many requests. Please try again later.' }, {
+      status: 429,
+      headers: { 'Access-Control-Allow-Origin': '*', 'Retry-After': '60' },
     });
   }
 

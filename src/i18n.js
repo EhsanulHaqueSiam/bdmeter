@@ -124,6 +124,18 @@ const translations = {
     'Go home': 'Go home',
     'Submit meter number': 'Submit meter number',
     'Loading spinner': 'Loading spinner',
+    // Nickname
+    'Edit nickname': 'Edit nickname',
+    'Set nickname': 'Set nickname',
+    // Search History
+    'Recent Searches': 'Recent Searches',
+    'Clear': 'Clear',
+    // Recharge Link
+    'Recharge Now': 'Recharge Now',
+    // Calendar Export
+    'Export Calendar': 'Export Calendar',
+    // Home screen tip
+    'Tip: Add to home screen for quick access to your balance': 'Tip: Add to home screen for quick access to your balance',
   },
   bn: {
     'Check your grid': 'আপনার গ্রিড চেক করুন',
@@ -250,6 +262,18 @@ const translations = {
     'Go home': 'হোমে যান',
     'Submit meter number': 'মিটার নম্বর জমা দিন',
     'Loading spinner': 'লোড হচ্ছে',
+    // Nickname
+    'Edit nickname': 'ডাকনাম সম্পাদনা',
+    'Set nickname': 'ডাকনাম সেট করুন',
+    // Search History
+    'Recent Searches': 'সাম্প্রতিক অনুসন্ধান',
+    'Clear': 'মুছুন',
+    // Recharge Link
+    'Recharge Now': 'এখনই রিচার্জ',
+    // Calendar Export
+    'Export Calendar': 'ক্যালেন্ডার রপ্তানি',
+    // Home screen tip
+    'Tip: Add to home screen for quick access to your balance': 'টিপ: আপনার ব্যালেন্সে দ্রুত অ্যাক্সেসের জন্য হোম স্ক্রিনে যোগ করুন',
   },
 }
 
