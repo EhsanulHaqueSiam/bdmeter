@@ -15,7 +15,7 @@ const fadeUp = {
   animate: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } },
 }
 
-export default function Dashboard({ data, meterNo, onReset }) {
+export default function Dashboard({ data, meterNo, onReset, isSaved, onSave }) {
   return (
     <motion.div
       variants={stagger}
@@ -24,7 +24,7 @@ export default function Dashboard({ data, meterNo, onReset }) {
       className="space-y-6"
     >
       <motion.div variants={fadeUp}>
-        <CustomerInfo data={data} meterNo={meterNo} onReset={onReset} />
+        <CustomerInfo data={data} meterNo={meterNo} onReset={onReset} isSaved={isSaved} onSave={onSave} />
       </motion.div>
       <motion.div variants={fadeUp}>
         <StatsCards data={data} />

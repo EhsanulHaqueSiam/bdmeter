@@ -27,7 +27,7 @@ function App() {
     const urlMeter = params.get('meter')
     const urlProvider = params.get('provider')
     if (urlMeter && /^\d{8,12}$/.test(urlMeter)) {
-      fetchData(urlMeter, urlProvider === 'desco' ? 'desco' : 'nesco')
+      fetchData(urlMeter, urlProvider === 'desco' ? 'desco' : 'nesco', { save: false })
       return
     }
     // Otherwise load primary meter
@@ -37,7 +37,7 @@ function App() {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const fetchData = async (meter, prov = provider) => {
+  const fetchData = async (meter, prov = provider, { save = true } = {}) => {
     const requestId = ++requestRef.current
     setLoading(true)
     setError(null)
@@ -55,7 +55,7 @@ function App() {
       }
       if (requestId !== requestRef.current) return
       setData({ ...json, provider: prov })
-      addMeter(meter, json.customerInfo?.name || '', prov)
+      if (save) addMeter(meter, json.customerInfo?.name || '', prov)
       // Update URL with meter info for sharing
       const url = new URL(window.location)
       url.searchParams.set('meter', meter)
@@ -177,6 +177,8 @@ function App() {
                   data={data}
                   meterNo={meterNo}
                   onReset={goHome}
+                  isSaved={meters.some(m => m.number === meterNo && (m.provider || 'nesco') === (data?.provider || provider))}
+                  onSave={() => addMeter(meterNo, data?.customerInfo?.name || '', data?.provider || provider)}
                 />
               </Suspense>
             </motion.div>

@@ -77,7 +77,7 @@ function ShareButton({ meterNo, provider }) {
   )
 }
 
-export default function CustomerInfo({ data, meterNo, onReset }) {
+export default function CustomerInfo({ data, meterNo, onReset, isSaved, onSave }) {
   const { customerInfo } = data
 
   const fields = [
@@ -111,7 +111,23 @@ export default function CustomerInfo({ data, meterNo, onReset }) {
             {customerInfo?.address || 'Nesco Prepaid Customer'}
           </p>
         </motion.div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          {!isSaved && onSave && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3, delay: 0.15 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onSave}
+              className="px-4 py-2 rounded-xl font-medium text-sm border border-[var(--color-success)] bg-green-50 text-green-700 hover:bg-green-100 transition-colors cursor-pointer whitespace-nowrap flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+              </svg>
+              Save Meter
+            </motion.button>
+          )}
           <ShareButton meterNo={meterNo} provider={data.provider} />
           <motion.button
             initial={{ opacity: 0, scale: 0.9 }}
