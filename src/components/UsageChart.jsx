@@ -18,7 +18,7 @@ function CustomTooltip({ active, payload, label }) {
       initial={{ opacity: 0, y: 5 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.15 }}
-      className="bg-white rounded-lg border border-[var(--color-outline)] shadow-sm p-3 text-sm"
+      className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-outline)] shadow-sm p-3 text-sm"
     >
       <p className="font-medium text-[var(--color-ink)] mb-2 border-b border-[var(--color-outline)] pb-1">{label}</p>
       {payload.map((p, i) => (
@@ -34,7 +34,7 @@ function CustomTooltip({ active, payload, label }) {
   )
 }
 
-export default function UsageChart({ monthlyUsage }) {
+export default function UsageChart({ monthlyUsage, t }) {
   const [view, setView] = useState('cost')
 
   const chartData = [...monthlyUsage].reverse().map((m) => ({
@@ -51,10 +51,10 @@ export default function UsageChart({ monthlyUsage }) {
   }))
 
   const views = [
-    { key: 'cost', label: 'Cost' },
-    { key: 'kwh', label: 'Energy (kWh)' },
-    { key: 'rate', label: 'Rate' },
-    { key: 'balance', label: 'Balance' },
+    { key: 'cost', label: t('Cost') },
+    { key: 'kwh', label: t('Energy (kWh)') },
+    { key: 'rate', label: t('Rate') },
+    { key: 'balance', label: t('Balance') },
   ]
 
   return (
@@ -62,13 +62,13 @@ export default function UsageChart({ monthlyUsage }) {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="bg-white rounded-2xl border border-[var(--color-outline)] shadow-sm p-6"
+      className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-outline)] shadow-sm p-6"
     >
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
         <div>
-          <h3 className="text-lg font-semibold text-[var(--color-ink)] tracking-tight">Usage Analytics</h3>
+          <h3 className="text-lg font-semibold text-[var(--color-ink)] tracking-tight">{t('Usage Analytics')}</h3>
           <p className="text-sm text-[var(--color-ink)]/70 mt-1">
-            Electricity consumption
+            {t('Electricity consumption')}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -80,8 +80,8 @@ export default function UsageChart({ monthlyUsage }) {
               whileTap={{ scale: 0.95 }}
               className={`relative px-3.5 py-1.5 rounded-lg text-sm font-medium cursor-pointer ${
                 view === v.key
-                  ? 'text-white shadow-sm'
-                  : 'bg-white text-[var(--color-ink)]/70 border border-[var(--color-outline)] hover:bg-gray-50'
+                  ? 'text-[var(--color-base)] shadow-sm'
+                  : 'bg-[var(--color-surface)] text-[var(--color-ink)]/70 border border-[var(--color-outline)] hover:bg-[var(--color-surface-dim)]'
               }`}
             >
               {view === v.key && (

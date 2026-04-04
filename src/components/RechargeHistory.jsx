@@ -33,7 +33,7 @@ function CopyButton({ text }) {
       onClick={copyText}
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.92 }}
-      className="ml-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-[var(--color-outline)] bg-white hover:bg-gray-50 text-[var(--color-ink)] text-xs font-medium transition-colors cursor-pointer"
+      className="ml-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-[var(--color-outline)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-dim)] text-[var(--color-ink)] text-xs font-medium transition-colors cursor-pointer"
       title="Copy Token"
     >
       <AnimatePresence mode="wait">
@@ -67,7 +67,7 @@ function formatKwh(value) {
   return n.toFixed(2)
 }
 
-export default function RechargeHistory({ rechargeHistory, provider }) {
+export default function RechargeHistory({ rechargeHistory, provider, t }) {
   const [expanded, setExpanded] = useState(false)
   const isDesco = provider === 'desco'
   const visible = expanded ? rechargeHistory : rechargeHistory.slice(0, 10)
@@ -78,12 +78,12 @@ export default function RechargeHistory({ rechargeHistory, provider }) {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="bg-white rounded-2xl border border-[var(--color-outline)] shadow-sm overflow-hidden"
+      className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-outline)] shadow-sm overflow-hidden"
     >
       <div className="px-6 py-6 border-b border-[var(--color-outline)] flex items-end justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-[var(--color-ink)] tracking-tight">History</h3>
-          <p className="text-sm text-[var(--color-ink)]/70 mt-1">{rechargeHistory.length} Transactions</p>
+          <h3 className="text-lg font-semibold text-[var(--color-ink)] tracking-tight">{t('History')}</h3>
+          <p className="text-sm text-[var(--color-ink)]/70 mt-1">{rechargeHistory.length} {t('Transactions')}</p>
         </div>
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
@@ -110,7 +110,7 @@ export default function RechargeHistory({ rechargeHistory, provider }) {
 
       <div className="overflow-x-auto">
         <table className="min-w-[1200px] w-full text-sm text-left whitespace-nowrap">
-          <thead className="bg-gray-50/50 text-[var(--color-ink)]/70 font-medium">
+          <thead className="bg-[var(--color-surface-dim)]/50 text-[var(--color-ink)]/70 font-medium">
             <tr>
               <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium">#</th>
               <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium">Date & Token</th>
@@ -131,7 +131,7 @@ export default function RechargeHistory({ rechargeHistory, provider }) {
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: Math.min(i * 0.03, 0.3) }}
-                className="hover:bg-gray-50/50 transition-colors"
+                className="hover:bg-[var(--color-surface-dim)]/50 transition-colors"
               >
                 <td className="px-6 py-4 text-[var(--color-ink)]/70">{r.serial}</td>
                 <td className="px-6 py-4">
@@ -148,7 +148,7 @@ export default function RechargeHistory({ rechargeHistory, provider }) {
                 <td className="px-6 py-4 text-right text-[var(--color-ink)]/60">{formatMoney(r.demandCharge, { zeroAsDash: true })}</td>
                 <td className="px-6 py-4 text-right text-green-600">{r.rebate < 0 ? `৳${Math.abs(r.rebate).toFixed(0)}` : '-'}</td>
                 <td className="px-6 py-4 text-center">
-                  <span className="px-2.5 py-1 rounded-md bg-gray-100 text-[var(--color-ink)]/80 text-xs font-medium">{r.medium}</span>
+                  <span className="px-2.5 py-1 rounded-md bg-[var(--color-surface-dim)] text-[var(--color-ink)]/80 text-xs font-medium">{r.medium}</span>
                 </td>
                 <td className="px-6 py-4 text-center">
                   <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${

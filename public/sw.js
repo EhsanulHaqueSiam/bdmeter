@@ -1,6 +1,20 @@
-const CACHE_NAME = 'bd-meter-v1'
+const CACHE_NAME = 'bd-meter-v2'
+const APP_SHELL = [
+  '/',
+  '/index.html',
+  '/favicon.svg',
+  '/manifest.json',
+  '/icon-192.png',
+  '/icon-512.png',
+]
 
-self.addEventListener('install', () => self.skipWaiting())
+self.addEventListener('install', (e) => {
+  e.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
+  )
+  self.skipWaiting()
+})
+
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) =>
@@ -12,8 +26,22 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const { request } = e
   if (request.method !== 'GET') return
-  if (request.url.includes('/api/')) return
 
+  // Network-first for API calls, falling back to cache
+  if (request.url.includes('/api/')) {
+    e.respondWith(
+      fetch(request)
+        .then((res) => {
+          const clone = res.clone()
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone))
+          return res
+        })
+        .catch(() => caches.match(request))
+    )
+    return
+  }
+
+  // Cache-first for app shell, network-first for others
   e.respondWith(
     fetch(request)
       .then((res) => {

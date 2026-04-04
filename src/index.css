@@ -21,6 +21,15 @@
   --color-danger: #ef4444; /* Rose */
 }
 
+/* Dark mode overrides */
+html.dark {
+  --color-base: #1a1a1a;
+  --color-surface: #242424;
+  --color-surface-dim: #1e1e1e;
+  --color-ink: #e8e6e1;
+  --color-outline: #333330;
+}
+
 body {
   margin: 0;
   background: var(--color-base);

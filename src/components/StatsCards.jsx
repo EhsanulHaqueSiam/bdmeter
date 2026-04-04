@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import AnimatedNumber from './AnimatedNumber'
 
 function computeForecast(data) {
   const { customerInfo, monthlyUsage, dailyConsumption, rechargeHistory } = data
@@ -86,7 +87,7 @@ function computeForecast(data) {
   }
 }
 
-export default function StatsCards({ data }) {
+export default function StatsCards({ data, t }) {
   const { rechargeHistory, monthlyUsage, customerInfo } = data
 
   const lastRecharge = rechargeHistory[0]
@@ -117,24 +118,37 @@ export default function StatsCards({ data }) {
 
   const cards = [
     {
-      label: 'Balance',
+      label: t('Balance'),
+      numValue: balance,
+      numPrefix: '৳',
+      numDecimals: 2,
       value: `৳${balance.toFixed(2)}`,
       sub: customerInfo?.balanceTime ? `As of ${customerInfo.balanceTime}` : 'Latest',
     },
     {
-      label: 'Last Recharge',
+      label: t('Last Recharge'),
+      numValue: lastRecharge ? lastRecharge.rechargeAmount : null,
+      numPrefix: '৳',
+      numDecimals: 0,
       value: lastRecharge ? `৳${lastRecharge.rechargeAmount}` : 'N/A',
       sub: lastRecharge ? `${lastRecharge.date}` : '',
       badge: lastRecharge ? lastRecharge.status : null,
     },
     {
-      label: 'Month Usage',
+      label: t('Month Usage'),
+      numValue: latestMonth ? latestMonth.usedKwh : null,
+      numPrefix: '',
+      numSuffix: ' kWh',
+      numDecimals: 0,
       value: latestMonth ? `${latestMonth.usedKwh} kWh` : 'N/A',
       sub: latestMonth ? `৳${latestMonth.usedElectricity.toFixed(0)} elec cost` : '',
       change: kwhChange,
     },
     {
-      label: 'Cost / kWh',
+      label: t('Cost / kWh'),
+      numValue: costPerKwh > 0 ? costPerKwh : null,
+      numPrefix: '৳',
+      numDecimals: 2,
       value: costPerKwh > 0 ? `৳${costPerKwh.toFixed(2)}` : 'N/A',
       sub: `Avg spend ৳${avgMonthly.toFixed(0)}/mo`,
       change: spendChange,
@@ -153,7 +167,7 @@ export default function StatsCards({ data }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 0.45, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] }}
             whileHover={{ y: -4, boxShadow: '0 10px 30px -8px rgba(0,0,0,0.08)' }}
-            className="bg-white rounded-2xl border border-[var(--color-outline)] shadow-sm p-6 flex flex-col justify-between"
+            className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-outline)] shadow-sm p-6 flex flex-col justify-between"
           >
             <div className="flex items-start justify-between mb-8">
               <div className="text-sm font-medium text-[var(--color-ink)]/70">
@@ -199,7 +213,16 @@ export default function StatsCards({ data }) {
                 transition={{ duration: 0.4, delay: 0.15 + i * 0.08 }}
                 className="text-3xl font-semibold text-[var(--color-ink)] mb-1 tracking-tight"
               >
-                {card.value}
+                {card.numValue != null ? (
+                  <AnimatedNumber
+                    value={card.numValue}
+                    prefix={card.numPrefix || ''}
+                    suffix={card.numSuffix || ''}
+                    decimals={card.numDecimals || 0}
+                  />
+                ) : (
+                  card.value
+                )}
               </motion.div>
               <div className="text-sm text-[var(--color-ink)]/70">{card.sub}</div>
             </div>
@@ -212,11 +235,11 @@ export default function StatsCards({ data }) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
-          className="bg-white rounded-2xl border border-[var(--color-outline)] shadow-sm p-6"
+          className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-outline)] shadow-sm p-6"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div>
-              <h3 className="text-lg font-semibold text-[var(--color-ink)] tracking-tight">Balance Forecast</h3>
+              <h3 className="text-lg font-semibold text-[var(--color-ink)] tracking-tight">{t('Balance Forecast')}</h3>
               <p className="text-sm text-[var(--color-ink)]/50 mt-0.5">
                 Based on {forecast.dataSource.toLowerCase()} ({forecast.dataPoints} data points)
               </p>
@@ -233,7 +256,7 @@ export default function StatsCards({ data }) {
                     : 'bg-red-50 text-red-700 border-red-200'
               }`}
             >
-              {forecast.daysLeft > 14 ? 'Comfortable' : forecast.daysLeft > 5 ? 'Low Soon' : 'Critical'}
+              {forecast.daysLeft > 14 ? t('Comfortable') : forecast.daysLeft > 5 ? t('Low Soon') : t('Critical')}
             </motion.span>
           </div>
 
@@ -242,9 +265,9 @@ export default function StatsCards({ data }) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="bg-gray-50/50 rounded-xl border border-[var(--color-outline)] p-4"
+              className="bg-[var(--color-surface-dim)]/50 rounded-xl border border-[var(--color-outline)] p-4"
             >
-              <div className="text-sm text-[var(--color-ink)]/60 mb-1">Lasts About</div>
+              <div className="text-sm text-[var(--color-ink)]/60 mb-1">{t('Lasts About')}</div>
               <div className={`text-2xl font-semibold tracking-tight ${
                 forecast.daysLeft > 14 ? 'text-green-600' : forecast.daysLeft > 5 ? 'text-amber-600' : 'text-red-600'
               }`}>
@@ -256,9 +279,9 @@ export default function StatsCards({ data }) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.45 }}
-              className="bg-gray-50/50 rounded-xl border border-[var(--color-outline)] p-4"
+              className="bg-[var(--color-surface-dim)]/50 rounded-xl border border-[var(--color-outline)] p-4"
             >
-              <div className="text-sm text-[var(--color-ink)]/60 mb-1">Daily Burn</div>
+              <div className="text-sm text-[var(--color-ink)]/60 mb-1">{t('Daily Burn')}</div>
               <div className="text-2xl font-semibold text-[var(--color-ink)] tracking-tight">
                 ৳{forecast.dailyTaka.toFixed(1)}
               </div>
@@ -268,9 +291,9 @@ export default function StatsCards({ data }) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="bg-gray-50/50 rounded-xl border border-[var(--color-outline)] p-4"
+              className="bg-[var(--color-surface-dim)]/50 rounded-xl border border-[var(--color-outline)] p-4"
             >
-              <div className="text-sm text-[var(--color-ink)]/60 mb-1">Runs Out</div>
+              <div className="text-sm text-[var(--color-ink)]/60 mb-1">{t('Runs Out')}</div>
               <div className="text-2xl font-semibold text-[var(--color-ink)] tracking-tight">
                 {forecast.depletionDate.getDate()} {MONTH_SHORT[forecast.depletionDate.getMonth()]}
               </div>
@@ -280,10 +303,10 @@ export default function StatsCards({ data }) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.55 }}
-              className="bg-gray-50/50 rounded-xl border border-[var(--color-outline)] p-4"
+              className="bg-[var(--color-surface-dim)]/50 rounded-xl border border-[var(--color-outline)] p-4"
             >
               <div className="text-sm text-[var(--color-ink)]/60 mb-1">
-                {forecast.dailyKwh > 0 ? 'Daily kWh' : 'Eff. Rate'}
+                {forecast.dailyKwh > 0 ? t('Daily kWh') : t('Eff. Rate')}
               </div>
               <div className="text-2xl font-semibold text-[var(--color-ink)] tracking-tight">
                 {forecast.dailyKwh > 0
@@ -306,7 +329,7 @@ export default function StatsCards({ data }) {
               <span>৳0</span>
               <span>৳{forecast.balance.toFixed(0)}</span>
             </div>
-            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-2 bg-[var(--color-surface-dim)] rounded-full overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${Math.min(100, Math.max(5, (forecast.daysLeft / 30) * 100))}%` }}

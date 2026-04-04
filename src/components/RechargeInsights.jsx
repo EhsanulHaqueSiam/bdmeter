@@ -22,7 +22,7 @@ function CustomTooltip({ active, payload }) {
       initial={{ opacity: 0, y: 5 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.15 }}
-      className="bg-white rounded-lg border border-[var(--color-outline)] shadow-sm p-3 text-sm"
+      className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-outline)] shadow-sm p-3 text-sm"
     >
       <div className="flex items-center gap-3 font-medium text-[var(--color-ink)]">
         <span className="w-2.5 h-2.5 rounded-full" style={{ background: d.payload.fill || d.color }} />
@@ -45,7 +45,7 @@ function PieLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent }) {
   )
 }
 
-export default function RechargeInsights({ rechargeHistory, provider }) {
+export default function RechargeInsights({ rechargeHistory, provider, t }) {
   const isNesco = provider !== 'desco'
   const mediumCounts = {}
   const mediumAmounts = {}
@@ -96,9 +96,9 @@ export default function RechargeInsights({ rechargeHistory, provider }) {
   const maxRecharge = Math.max(...rechargeHistory.map(r => r.rechargeAmount))
 
   const summaryCards = [
-    { label: 'Total Recharged', value: `৳${totalRecharged.toLocaleString()}` },
-    { label: 'Avg per Recharge', value: `৳${avgRecharge.toFixed(0)}` },
-    { label: 'Largest Recharge', value: `৳${maxRecharge.toLocaleString()}` },
+    { label: t('Total Recharged'), value: `৳${totalRecharged.toLocaleString()}` },
+    { label: t('Avg per Recharge'), value: `৳${avgRecharge.toFixed(0)}` },
+    { label: t('Largest Recharge'), value: `৳${maxRecharge.toLocaleString()}` },
   ]
 
   return (
@@ -106,10 +106,10 @@ export default function RechargeInsights({ rechargeHistory, provider }) {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="bg-white rounded-2xl border border-[var(--color-outline)] shadow-sm p-6"
+      className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-outline)] shadow-sm p-6"
     >
       <div className="mb-8">
-        <h3 className="text-lg font-semibold text-[var(--color-ink)] tracking-tight">Recharge Insights</h3>
+        <h3 className="text-lg font-semibold text-[var(--color-ink)] tracking-tight">{t('Recharge Insights')}</h3>
         <p className="text-sm text-[var(--color-ink)]/70 mt-1">
           Patterns across {rechargeHistory.length} transactions
         </p>
@@ -123,7 +123,7 @@ export default function RechargeInsights({ rechargeHistory, provider }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: i * 0.08 }}
             whileHover={{ y: -2 }}
-            className="bg-gray-50/50 rounded-xl border border-[var(--color-outline)] p-5"
+            className="bg-[var(--color-surface-dim)]/50 rounded-xl border border-[var(--color-outline)] p-5"
           >
             <div className="text-sm text-[var(--color-ink)]/70 mb-1">{card.label}</div>
             <div className="text-2xl font-semibold text-[var(--color-ink)] tracking-tight">{card.value}</div>
@@ -137,7 +137,7 @@ export default function RechargeInsights({ rechargeHistory, provider }) {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <h4 className="text-sm font-medium text-[var(--color-ink)] border-b border-[var(--color-outline)] pb-2 mb-4">Payment Methods</h4>
+          <h4 className="text-sm font-medium text-[var(--color-ink)] border-b border-[var(--color-outline)] pb-2 mb-4">{t('Payment Methods')}</h4>
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -148,7 +148,7 @@ export default function RechargeInsights({ rechargeHistory, provider }) {
                   dataKey="value"
                   labelLine={false}
                   label={PieLabel}
-                  stroke="#ffffff"
+                  stroke="var(--color-surface)"
                   strokeWidth={2}
                 >
                   {mediumData.map((entry) => (
@@ -175,11 +175,11 @@ export default function RechargeInsights({ rechargeHistory, provider }) {
         >
           {isNesco ? (
             <>
-              <h4 className="text-sm font-medium text-[var(--color-ink)] border-b border-[var(--color-outline)] pb-2 mb-4">Remote Recharge</h4>
+              <h4 className="text-sm font-medium text-[var(--color-ink)] border-b border-[var(--color-outline)] pb-2 mb-4">{t('Remote Recharge')}</h4>
               <div className="h-48">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={statusData} cx="50%" cy="50%" innerRadius={40} outerRadius={75} dataKey="value" labelLine={false} label={PieLabel} stroke="#ffffff" strokeWidth={2}>
+                    <Pie data={statusData} cx="50%" cy="50%" innerRadius={40} outerRadius={75} dataKey="value" labelLine={false} label={PieLabel} stroke="var(--color-surface)" strokeWidth={2}>
                       <Cell fill={STATUS_COLORS.Success} />
                       <Cell fill={STATUS_COLORS.Failed} />
                     </Pie>
@@ -202,7 +202,7 @@ export default function RechargeInsights({ rechargeHistory, provider }) {
                         buckets[label] = (buckets[label] || 0) + 1
                       })
                       return Object.entries(buckets).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
-                    })()} cx="50%" cy="50%" innerRadius={40} outerRadius={75} dataKey="value" labelLine={false} label={PieLabel} stroke="#ffffff" strokeWidth={2}>
+                    })()} cx="50%" cy="50%" innerRadius={40} outerRadius={75} dataKey="value" labelLine={false} label={PieLabel} stroke="var(--color-surface)" strokeWidth={2}>
                       {['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ef4444', '#94a3b8'].map((c, i) => <Cell key={i} fill={c} />)}
                     </Pie>
                     <Tooltip content={<CustomTooltip />} />
@@ -219,7 +219,7 @@ export default function RechargeInsights({ rechargeHistory, provider }) {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.4 }}
         >
-          <h4 className="text-sm font-medium text-[var(--color-ink)] border-b border-[var(--color-outline)] pb-2 mb-4">Frequency</h4>
+          <h4 className="text-sm font-medium text-[var(--color-ink)] border-b border-[var(--color-outline)] pb-2 mb-4">{t('Frequency')}</h4>
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={rechargeTimeline.slice(-12)} margin={{ top: 0, right: 0, left: -25, bottom: 0 }}>
@@ -231,7 +231,7 @@ export default function RechargeInsights({ rechargeHistory, provider }) {
                   content={({ active, payload, label }) => {
                     if (!active || !payload?.length) return null
                     return (
-                      <div className="bg-white rounded-lg border border-[var(--color-outline)] shadow-sm p-3 text-sm">
+                      <div className="bg-[var(--color-surface)] rounded-lg border border-[var(--color-outline)] shadow-sm p-3 text-sm">
                         <p className="font-medium text-[var(--color-ink)] mb-2 border-b border-[var(--color-outline)] pb-1">{label}</p>
                         <p className="text-[var(--color-ink)]">{payload[0].value} Recharges</p>
                         <p className="text-[var(--color-ink)]/70 mt-0.5">৳{payload[0].payload.total.toLocaleString()} total</p>
