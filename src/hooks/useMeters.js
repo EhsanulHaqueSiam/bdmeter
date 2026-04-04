@@ -15,17 +15,16 @@ function save(meters) {
 export default function useMeters() {
   const [meters, setMeters] = useState(load)
 
-  const addMeter = useCallback((number, name) => {
+  const addMeter = useCallback((number, name, provider = 'nesco') => {
     setMeters(prev => {
       const exists = prev.find(m => m.number === number)
       if (exists) {
-        // Update name if changed, keep everything else
-        const updated = prev.map(m => m.number === number ? { ...m, name: name || m.name } : m)
+        const updated = prev.map(m => m.number === number ? { ...m, name: name || m.name, provider: provider || m.provider } : m)
         save(updated)
         return updated
       }
       const isPrimary = prev.length === 0
-      const next = [...prev, { number, name: name || '', primary: isPrimary, addedAt: Date.now() }]
+      const next = [...prev, { number, name: name || '', provider, primary: isPrimary, addedAt: Date.now() }]
       save(next)
       return next
     })

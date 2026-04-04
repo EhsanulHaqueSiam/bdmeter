@@ -1,25 +1,50 @@
 import { useState } from 'react'
 
-export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter, onRemoveMeter, onSetPrimary }) {
+export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter, onRemoveMeter, onSetPrimary, provider, onProviderChange }) {
   const [meter, setMeter] = useState('')
-  const isValid = /^\d{8,11}$/.test(meter)
+  const maxLen = provider === 'desco' ? 12 : 11
+  const minLen = provider === 'desco' ? 8 : 8
+  const isValid = meter.length >= minLen && meter.length <= maxLen && /^\d+$/.test(meter)
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (isValid) onSubmit(meter)
+    if (isValid) onSubmit(meter, provider)
   }
+
+  const providerColor = provider === 'desco' ? 'orange' : 'primary'
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center">
       <div className="w-full max-w-md">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-2xl shadow-primary-500/30 mb-6">
+        <div className="text-center mb-8">
+          <div className={`inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br ${provider === 'desco' ? 'from-orange-500 to-orange-600 shadow-orange-500/30' : 'from-primary-500 to-primary-700 shadow-primary-500/30'} shadow-2xl mb-6`}>
             <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
             </svg>
           </div>
-          <h2 className="text-3xl font-bold text-slate-900 tracking-tight">NESCO Meter Dashboard</h2>
-          <p className="text-slate-500 mt-2 text-base">Enter your prepaid meter number to view recharge history, usage analytics, and more</p>
+          <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Prepaid Meter Dashboard</h2>
+          <p className="text-slate-500 mt-2 text-base">View recharge history, usage analytics, and more</p>
+        </div>
+
+        {/* Provider toggle */}
+        <div className="flex bg-slate-100 rounded-2xl p-1.5 mb-6 gap-1">
+          {[
+            { key: 'nesco', label: 'NESCO', sub: 'Northern Region' },
+            { key: 'desco', label: 'DESCO', sub: 'Dhaka Region' },
+          ].map((p) => (
+            <button
+              key={p.key}
+              onClick={() => onProviderChange(p.key)}
+              className={`flex-1 py-3 px-4 rounded-xl text-center transition-all cursor-pointer ${
+                provider === p.key
+                  ? 'bg-white shadow-md text-slate-900'
+                  : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              <div className="text-sm font-bold">{p.label}</div>
+              <div className="text-[10px] font-medium opacity-60">{p.sub}</div>
+            </button>
+          ))}
         </div>
 
         {/* Saved meters */}
@@ -31,16 +56,19 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
                 <div
                   key={m.number}
                   className="group flex items-center gap-3 bg-white border border-slate-200 hover:border-primary-300 rounded-xl px-4 py-3 transition-all hover:shadow-md cursor-pointer"
-                  onClick={() => onSwitchMeter(m.number)}
+                  onClick={() => onSwitchMeter(m.number, m.provider || 'nesco')}
                 >
-                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-slate-500 group-hover:from-primary-50 group-hover:to-primary-100 group-hover:text-primary-600 transition-all">
-                    <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${(m.provider || 'nesco') === 'desco' ? 'from-orange-50 to-orange-100 text-orange-500' : 'from-slate-100 to-slate-200 text-slate-500'} flex items-center justify-center group-hover:shadow transition-all`}>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
                     </svg>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-slate-800 text-sm">{m.number}</span>
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${(m.provider || 'nesco') === 'desco' ? 'bg-orange-50 text-orange-500' : 'bg-primary-50 text-primary-600'}`}>
+                        {(m.provider || 'nesco').toUpperCase()}
+                      </span>
                       {m.primary && (
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-600">PRIMARY</span>
                       )}
@@ -86,16 +114,16 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
               type="text"
               inputMode="numeric"
               pattern="[0-9]*"
-              placeholder="Enter 8-11 digit meter number"
+              placeholder={provider === 'desco' ? 'Account or meter number' : 'Enter 8-11 digit meter number'}
               value={meter}
-              onChange={(e) => setMeter(e.target.value.replace(/\D/g, '').slice(0, 11))}
-              className="w-full h-14 px-5 pr-14 text-lg font-medium text-slate-900 bg-white border-2 border-slate-200 rounded-2xl outline-none transition-all duration-200 placeholder:text-slate-300 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 hover:border-slate-300"
+              onChange={(e) => setMeter(e.target.value.replace(/\D/g, '').slice(0, maxLen))}
+              className={`w-full h-14 px-5 pr-14 text-lg font-medium text-slate-900 bg-white border-2 border-slate-200 rounded-2xl outline-none transition-all duration-200 placeholder:text-slate-300 hover:border-slate-300 ${provider === 'desco' ? 'focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10' : 'focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10'}`}
               autoFocus={meters.length === 0}
             />
             <div className="absolute right-4 top-1/2 -translate-y-1/2">
               {meter.length > 0 && (
                 <span className={`text-xs font-semibold px-2 py-1 rounded-lg ${isValid ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
-                  {meter.length}/8-11
+                  {meter.length}/{minLen}-{maxLen}
                 </span>
               )}
             </div>
@@ -104,7 +132,11 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
           <button
             type="submit"
             disabled={!isValid}
-            className="w-full h-14 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 text-white font-semibold text-base rounded-2xl transition-all duration-200 shadow-lg shadow-primary-500/25 disabled:shadow-none hover:shadow-xl hover:shadow-primary-500/30 active:scale-[0.98] cursor-pointer disabled:cursor-not-allowed"
+            className={`w-full h-14 font-semibold text-base rounded-2xl transition-all duration-200 active:scale-[0.98] cursor-pointer disabled:cursor-not-allowed disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 disabled:shadow-none text-white ${
+              provider === 'desco'
+                ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-lg shadow-orange-500/25 hover:shadow-xl hover:shadow-orange-500/30'
+                : 'bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30'
+            }`}
           >
             View Dashboard
           </button>
@@ -121,7 +153,7 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
             </svg>
-            Data from NESCO
+            Data from {provider.toUpperCase()}
           </span>
           <span className="flex items-center gap-1.5">
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
