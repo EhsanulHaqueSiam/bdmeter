@@ -19,6 +19,15 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
   const maxLen = 12
   const validLengths = [8, 9, 10, 11, 12]
   const isValid = /^\d+$/.test(meter) && validLengths.includes(meter.length)
+  const sortedMeters = [...meters].sort((a, b) => {
+    const aScore = (a.manualPrimary ? 3 : 0) + (a.autoPrimary ? 2 : 0)
+    const bScore = (b.manualPrimary ? 3 : 0) + (b.autoPrimary ? 2 : 0)
+    if (bScore !== aScore) return bScore - aScore
+    const aOpen = Number(a.openCount) || 0
+    const bOpen = Number(b.openCount) || 0
+    if (bOpen !== aOpen) return bOpen - aOpen
+    return (Number(b.lastOpenedAt) || 0) - (Number(a.lastOpenedAt) || 0)
+  })
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -171,7 +180,7 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
                 </h3>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {meters.map((m, i) => {
+                {sortedMeters.map((m, i) => {
                   const meterKey = `${m.provider || 'nesco'}:${m.number}`
                   const isEditing = editingNickname === meterKey
                   return (
@@ -207,17 +216,19 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
                           >
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z" /></svg>
                           </motion.button>
-                          {!m.primary && (
-                            <motion.button
-                              whileHover={{ scale: 1.2 }}
-                              whileTap={{ scale: 0.9 }}
-                              onClick={(e) => { e.stopPropagation(); onSetPrimary(m.number, m.provider || 'nesco') }}
-                              className="text-[var(--color-ink-muted)] hover:text-[var(--color-warning)] transition-colors p-1"
-                              title={t('Set as Default')}
-                            >
-                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                            </motion.button>
-                          )}
+                          <motion.button
+                            whileHover={{ scale: 1.2 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={(e) => { e.stopPropagation(); onSetPrimary(m.number, m.provider || 'nesco') }}
+                            className={`transition-colors p-1 ${
+                              m.manualPrimary
+                                ? 'text-[var(--color-warning)]'
+                                : 'text-[var(--color-ink-muted)] hover:text-[var(--color-warning)]'
+                            }`}
+                            title={m.manualPrimary ? t('Unpin Primary') : t('Pin Primary')}
+                          >
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                          </motion.button>
                           <motion.button
                             whileHover={{ scale: 1.2 }}
                             whileTap={{ scale: 0.9 }}
@@ -269,6 +280,23 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
                               className="w-1.5 h-1.5 rounded-full bg-[var(--color-warning)]"
                             />
                           )}
+                        </div>
+                        {(m.manualPrimary || m.autoPrimary) && (
+                          <div className="flex items-center gap-2 mt-1.5">
+                            {m.manualPrimary && (
+                              <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700">
+                                {t('Pinned')}
+                              </span>
+                            )}
+                            {m.autoPrimary && (
+                              <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700">
+                                {t('Auto Primary')}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        <div className="text-[10px] text-[var(--color-ink-muted)] mt-1">
+                          {t('Opened')} {Number(m.openCount) || 0}x
                         </div>
                         {m.name && <div className="text-sm font-medium text-[var(--color-ink)]/60 mt-1 truncate">{m.name}</div>}
                       </div>

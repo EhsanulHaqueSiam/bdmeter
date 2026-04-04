@@ -130,7 +130,42 @@ function PrintButton({ t }) {
   )
 }
 
-export default function Dashboard({ data, meterNo, onReset, isSaved, onSave, meters, nickname, t }) {
+function HardRefreshButton({ onHardRefresh, hardRefreshing, t }) {
+  if (!onHardRefresh) return null
+
+  return (
+    <motion.button
+      whileHover={!hardRefreshing ? { scale: 1.05 } : {}}
+      whileTap={!hardRefreshing ? { scale: 0.95 } : {}}
+      onClick={() => { haptic(); onHardRefresh() }}
+      disabled={hardRefreshing}
+      className={`px-4 py-2 rounded-xl font-medium text-sm border transition-colors whitespace-nowrap flex items-center gap-2 print:hidden ${
+        hardRefreshing
+          ? 'border-[var(--color-outline)] bg-[var(--color-surface-dim)] text-[var(--color-ink-muted)] cursor-not-allowed'
+          : 'border-[var(--color-outline)] bg-[var(--color-surface)] text-[var(--color-ink)] hover:bg-[var(--color-surface-dim)] cursor-pointer'
+      }`}
+      aria-label={t('Hard Refresh')}
+    >
+      <svg className={`w-4 h-4 ${hardRefreshing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992V4.356m-1.562 5.39a9 9 0 11-2.83-3.515" />
+      </svg>
+      {hardRefreshing ? t('Refreshing...') : t('Hard Refresh')}
+    </motion.button>
+  )
+}
+
+export default function Dashboard({
+  data,
+  meterNo,
+  onReset,
+  isSaved,
+  onSave,
+  meters,
+  nickname,
+  onHardRefresh,
+  hardRefreshing,
+  t,
+}) {
   return (
     <motion.div
       variants={stagger}
@@ -142,6 +177,7 @@ export default function Dashboard({ data, meterNo, onReset, isSaved, onSave, met
         {meters && meters.length >= 2 && (
           <MeterComparison meters={meters} t={t} />
         )}
+        <HardRefreshButton onHardRefresh={onHardRefresh} hardRefreshing={hardRefreshing} t={t} />
         <PrintButton t={t} />
         <ExportDropdown data={data} t={t} />
       </motion.div>

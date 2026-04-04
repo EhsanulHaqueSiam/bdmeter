@@ -8,6 +8,12 @@ import Confetti from './components/Confetti'
 import useMeters from './hooks/useMeters'
 import useLanguage from './hooks/useLanguage'
 import useSearchHistory from './hooks/useSearchHistory'
+import {
+  getCachedAutoMeterData,
+  getCachedMeterData,
+  setCachedMeterData,
+  syncHotMetersCookie,
+} from './utils/meterCache'
 
 const Dashboard = lazy(() => import('./components/Dashboard'))
 const AUTO_PROVIDER = 'auto'
@@ -99,6 +105,7 @@ function App() {
   const requestRef = useRef(0)
   const notifRequested = useRef(false)
   const [showConfetti, setShowConfetti] = useState(false)
+  const [isHardRefreshing, setIsHardRefreshing] = useState(false)
   const confettiShownRef = useRef(false)
   const [swipeDirection, setSwipeDirection] = useState(0)
   const touchStartRef = useRef(null)
@@ -153,6 +160,15 @@ function App() {
   }, [data])
 
   useEffect(() => {
+    syncHotMetersCookie(meters)
+  }, [meters])
+
+  useEffect(() => {
+    if (!data || !meterNo) return
+    setCachedMeterData(meterNo, data.provider || provider, data)
+  }, [data, meterNo, provider, meters])
+
+  useEffect(() => {
     // Check URL params first (shared link)
     const params = new URLSearchParams(window.location.search)
     const urlMeter = params.get('meter')
@@ -202,22 +218,56 @@ function App() {
     throw lastErr
   }
 
-  const fetchData = async (meter, prov = AUTO_PROVIDER, { save = true } = {}) => {
+  const fetchData = async (
+    meter,
+    prov = AUTO_PROVIDER,
+    { save = true, forceRefresh = false, silent = false } = {},
+  ) => {
     const normalizedMeter = String(meter || '').replace(/\D/g, '')
     const lookupMode = prov || AUTO_PROVIDER
     const requestId = ++requestRef.current
-    setLoading(true)
+    const shouldShowLoading = !silent || !data
+
+    if (shouldShowLoading) setLoading(true)
     setError(null)
     setMeterNo(normalizedMeter)
 
     if (!/^\d{8,12}$/.test(normalizedMeter)) {
       setError('Enter a valid account or meter number (8-12 digits).')
       setData(null)
-      setLoading(false)
+      if (shouldShowLoading) setLoading(false)
       return
     }
 
     try {
+      if (!forceRefresh) {
+        const cached = lookupMode === AUTO_PROVIDER
+          ? getCachedAutoMeterData(normalizedMeter)
+          : getCachedMeterData(normalizedMeter, lookupMode)
+
+        if (cached?.data) {
+          const cachedProvider = cached.provider || cached.data.provider || lookupMode || 'nesco'
+          const cachedData = { ...cached.data, provider: cachedProvider }
+
+          if (requestId !== requestRef.current) return
+          setProvider(cachedProvider)
+          setData(cachedData)
+          setLastUpdated(new Date(cached.updatedAt || Date.now()))
+
+          if (save) {
+            addMeter(normalizedMeter, cachedData.customerInfo?.name || '', cachedProvider)
+            addSearch(normalizedMeter, cachedProvider)
+          }
+
+          const url = new URL(window.location)
+          url.searchParams.set('meter', normalizedMeter)
+          url.searchParams.set('provider', cachedProvider)
+          window.history.replaceState({}, '', url)
+          checkLowBalance(cachedData, normalizedMeter)
+          return
+        }
+      }
+
       let resolvedProvider = lookupMode
       let json = null
 
@@ -260,6 +310,7 @@ function App() {
         addMeter(normalizedMeter, json.customerInfo?.name || '', resolvedProvider)
         addSearch(normalizedMeter, resolvedProvider)
       }
+      setCachedMeterData(normalizedMeter, resolvedProvider, newData)
       // Update URL with meter info for sharing
       const url = new URL(window.location)
       url.searchParams.set('meter', normalizedMeter)
@@ -281,7 +332,7 @@ function App() {
       setError(err.message)
       setData(null)
     } finally {
-      if (requestId === requestRef.current) {
+      if (requestId === requestRef.current && shouldShowLoading) {
         setLoading(false)
       }
     }
@@ -317,7 +368,7 @@ function App() {
   useEffect(() => {
     if (data && meterNo) {
       autoRefreshRef.current = setInterval(() => {
-        fetchData(meterNo, data.provider || provider, { save: false })
+        fetchData(meterNo, data.provider || provider, { save: false, silent: true })
       }, 5 * 60 * 1000)
     }
     return () => {
@@ -356,10 +407,28 @@ function App() {
 
   const currentMeterIndex = data ? meters.findIndex(m => m.number === meterNo && (m.provider || 'nesco') === (data?.provider || provider)) : -1
 
+  const handleHardRefresh = useCallback(async () => {
+    if (!data || !meterNo || isHardRefreshing) return
+    setIsHardRefreshing(true)
+    try {
+      await fetchData(meterNo, data.provider || provider, {
+        save: false,
+        forceRefresh: true,
+        silent: true,
+      })
+    } finally {
+      setIsHardRefreshing(false)
+    }
+  }, [data, isHardRefreshing, meterNo, provider]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Pull-to-refresh handler
   const handlePullRefresh = useCallback(() => {
     if (data && meterNo) {
-      return fetchData(meterNo, data.provider || provider, { save: false })
+      return fetchData(meterNo, data.provider || provider, {
+        save: false,
+        forceRefresh: true,
+        silent: true,
+      })
     }
   }, [data, meterNo, provider]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -563,6 +632,8 @@ function App() {
                     onSave={() => addMeter(meterNo, data?.customerInfo?.name || '', data?.provider || provider)}
                     meters={meters}
                     nickname={meters.find(m => m.number === meterNo && (m.provider || 'nesco') === (data?.provider || provider))?.nickname}
+                    onHardRefresh={handleHardRefresh}
+                    hardRefreshing={isHardRefreshing}
                     t={t}
                   />
                 </Suspense>
