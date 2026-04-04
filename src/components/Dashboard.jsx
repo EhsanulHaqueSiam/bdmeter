@@ -1,6 +1,7 @@
 import StatsCards from './StatsCards'
 import CustomerInfo from './CustomerInfo'
 import UsageChart from './UsageChart'
+import RechargeInsights from './RechargeInsights'
 import RechargeHistory from './RechargeHistory'
 import MonthlyTable from './MonthlyTable'
 
@@ -11,6 +12,9 @@ export default function Dashboard({ data, meterNo, onReset }) {
       <StatsCards data={data} />
       {data.monthlyUsage?.length > 0 && (
         <UsageChart monthlyUsage={data.monthlyUsage} />
+      )}
+      {data.rechargeHistory?.length > 0 && (
+        <RechargeInsights rechargeHistory={data.rechargeHistory} />
       )}
       {data.rechargeHistory?.length > 0 && (
         <RechargeHistory rechargeHistory={data.rechargeHistory} />

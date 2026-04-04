@@ -1,6 +1,6 @@
 import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Legend, ComposedChart, Line,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, Legend, ComposedChart, Line, Bar,
 } from 'recharts'
 import { useState } from 'react'
 
@@ -19,7 +19,7 @@ function CustomTooltip({ active, payload, label }) {
         <div key={i} className="flex items-center gap-2 py-0.5">
           <span className="w-2 h-2 rounded-full" style={{ background: p.color }} />
           <span className="text-slate-300">{p.name}:</span>
-          <span className="font-semibold">{typeof p.value === 'number' ? p.value.toFixed(1) : p.value}</span>
+          <span className="font-semibold">{typeof p.value === 'number' ? p.value.toFixed(2) : p.value}</span>
         </div>
       ))}
     </div>
@@ -38,12 +38,15 @@ export default function UsageChart({ monthlyUsage }) {
     vat: m.vat,
     demandCharge: m.demandCharge,
     meterRent: m.meterRent,
+    rate: m.usedKwh > 0 ? +(m.usedElectricity / m.usedKwh).toFixed(2) : 0,
+    totalUsage: m.totalUsage,
   }))
 
   const views = [
     { key: 'cost', label: 'Cost Breakdown' },
     { key: 'kwh', label: 'Energy (kWh)' },
-    { key: 'balance', label: 'Balance Trend' },
+    { key: 'rate', label: 'Unit Rate' },
+    { key: 'balance', label: 'Balance' },
   ]
 
   return (
@@ -92,7 +95,7 @@ export default function UsageChart({ monthlyUsage }) {
               <Line type="monotone" dataKey="totalRecharge" name="Recharge (৳)" stroke="#10b981" strokeWidth={2} dot={{ r: 3, fill: '#10b981' }} />
             </ComposedChart>
           ) : view === 'kwh' ? (
-            <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
+            <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
               <defs>
                 <linearGradient id="kwhGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.2} />
@@ -103,8 +106,25 @@ export default function UsageChart({ monthlyUsage }) {
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
               <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
               <Tooltip content={<CustomTooltip />} />
+              <Legend iconSize={8} wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
               <Area type="monotone" dataKey="kwh" name="Energy (kWh)" fill="url(#kwhGrad)" stroke="#f59e0b" strokeWidth={2.5} dot={{ r: 3, fill: '#f59e0b', strokeWidth: 0 }} />
-            </AreaChart>
+              <Line type="monotone" dataKey="electricity" name="Cost (৳)" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3, fill: '#3b82f6' }} />
+            </ComposedChart>
+          ) : view === 'rate' ? (
+            <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
+              <defs>
+                <linearGradient id="rateGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend iconSize={8} wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
+              <Area type="monotone" dataKey="rate" name="Rate (৳/kWh)" fill="url(#rateGrad)" stroke="#8b5cf6" strokeWidth={2.5} dot={{ r: 4, fill: '#8b5cf6', strokeWidth: 0 }} />
+            </ComposedChart>
           ) : (
             <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
               <defs>
