@@ -14,7 +14,7 @@ export default function Dashboard({ data, meterNo, onReset }) {
         <UsageChart monthlyUsage={data.monthlyUsage} />
       )}
       {data.rechargeHistory?.length > 0 && (
-        <RechargeInsights rechargeHistory={data.rechargeHistory} />
+        <RechargeInsights rechargeHistory={data.rechargeHistory} provider={data.provider} />
       )}
       {data.rechargeHistory?.length > 0 && (
         <RechargeHistory rechargeHistory={data.rechargeHistory} />

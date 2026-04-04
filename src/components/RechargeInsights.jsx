@@ -39,7 +39,8 @@ function PieLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent, name })
   )
 }
 
-export default function RechargeInsights({ rechargeHistory }) {
+export default function RechargeInsights({ rechargeHistory, provider }) {
+  const isNesco = provider !== 'desco'
   // Payment method breakdown
   const mediumCounts = {}
   const mediumAmounts = {}
@@ -63,11 +64,24 @@ export default function RechargeInsights({ rechargeHistory }) {
   ]
 
   // Recharge amounts over time (group by month)
+  const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
   const monthlyRecharges = {}
   rechargeHistory.forEach((r) => {
-    const match = r.date.match(/(\d{2})-([A-Z]{3})-(\d{4})/)
-    if (match) {
-      const key = `${match[2]} ${match[3].slice(-2)}`
+    let key = null
+    // NESCO format: DD-MMM-YYYY
+    const nescoMatch = r.date.match(/(\d{2})-([A-Z]{3})-(\d{4})/)
+    if (nescoMatch) {
+      key = `${nescoMatch[2]} ${nescoMatch[3].slice(-2)}`
+    }
+    // DESCO format: YYYY-MM-DD HH:MM:SS
+    if (!key) {
+      const descoMatch = r.date.match(/(\d{4})-(\d{2})-(\d{2})/)
+      if (descoMatch) {
+        const mi = parseInt(descoMatch[2]) - 1
+        key = `${MONTH_ABBR[mi] || descoMatch[2]} ${descoMatch[1].slice(-2)}`
+      }
+    }
+    if (key) {
       if (!monthlyRecharges[key]) monthlyRecharges[key] = { month: key, total: 0, count: 0 }
       monthlyRecharges[key].total += r.rechargeAmount
       monthlyRecharges[key].count++
@@ -136,37 +150,53 @@ export default function RechargeInsights({ rechargeHistory }) {
           </div>
         </div>
 
-        {/* Remote recharge success rate */}
+        {/* Remote recharge rate (NESCO) or amount distribution (DESCO) */}
         <div>
-          <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Remote Recharge Rate</h4>
-          <div className="h-48">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={statusData}
-                  cx="50%" cy="50%"
-                  innerRadius={35} outerRadius={70}
-                  dataKey="value"
-                  labelLine={false}
-                  label={PieLabel}
-                >
-                  <Cell fill={STATUS_COLORS.Success} />
-                  <Cell fill={STATUS_COLORS.Failed} />
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-                <Legend
-                  iconSize={8} iconType="circle"
-                  wrapperStyle={{ fontSize: '11px' }}
-                  formatter={(value) => <span className="text-slate-600">{value}</span>}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="text-center mt-1">
-            <span className="text-xs text-slate-400">
-              {((successCount / rechargeHistory.length) * 100).toFixed(0)}% auto-applied
-            </span>
-          </div>
+          {isNesco ? (
+            <>
+              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Remote Recharge Rate</h4>
+              <div className="h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={statusData} cx="50%" cy="50%" innerRadius={35} outerRadius={70} dataKey="value" labelLine={false} label={PieLabel}>
+                      <Cell fill={STATUS_COLORS.Success} />
+                      <Cell fill={STATUS_COLORS.Failed} />
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '11px' }} formatter={(value) => <span className="text-slate-600">{value}</span>} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="text-center mt-1">
+                <span className="text-xs text-slate-400">{((successCount / rechargeHistory.length) * 100).toFixed(0)}% auto-applied</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Recharge Amounts</h4>
+              <div className="h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={(() => {
+                      const buckets = {}
+                      rechargeHistory.forEach(r => {
+                        const label = `৳${r.rechargeAmount}`
+                        buckets[label] = (buckets[label] || 0) + 1
+                      })
+                      return Object.entries(buckets).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
+                    })()} cx="50%" cy="50%" innerRadius={35} outerRadius={70} dataKey="value" labelLine={false} label={PieLabel}>
+                      {['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#f43f5e', '#6366f1', '#94a3b8'].map((c, i) => <Cell key={i} fill={c} />)}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '11px' }} formatter={(value) => <span className="text-slate-600">{value}</span>} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="text-center mt-1">
+                <span className="text-xs text-slate-400">{rechargeHistory.length} total recharges</span>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Monthly recharge frequency */}
