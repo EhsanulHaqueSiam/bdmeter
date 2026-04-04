@@ -15,8 +15,8 @@ const steps = [
     ),
   },
   {
-    titleKey: 'Toggle between NESCO and DESCO',
-    descKey: 'Switch between electricity providers using the toggle. Each has its own data format and features.',
+    titleKey: 'Auto-detect provider',
+    descKey: 'Just enter your account or meter number. We detect NESCO or DESCO automatically.',
     icon: (
       <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />

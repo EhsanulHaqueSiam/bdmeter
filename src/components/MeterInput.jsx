@@ -11,20 +11,20 @@ const fadeUp = {
   animate: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } },
 }
 
-export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter, onRemoveMeter, onSetPrimary, onSetNickname, provider, onProviderChange, searchHistory = [], onClearHistory, t }) {
+export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter, onRemoveMeter, onSetPrimary, onSetNickname, searchHistory = [], onClearHistory, t }) {
   const [meter, setMeter] = useState('')
   const [editingNickname, setEditingNickname] = useState(null)
   const [nicknameValue, setNicknameValue] = useState('')
   const nicknameInputRef = useRef(null)
-  const maxLen = provider === 'desco' ? 12 : 11
-  const validLengths = provider === 'desco' ? [8, 9, 11, 12] : [8, 11]
+  const maxLen = 12
+  const validLengths = [8, 9, 10, 11, 12]
   const isValid = /^\d+$/.test(meter) && validLengths.includes(meter.length)
 
   const handleSubmit = (e) => {
     e.preventDefault()
     if (isValid) {
       haptic()
-      onSubmit(meter, provider)
+      onSubmit(meter)
     }
   }
 
@@ -43,54 +43,22 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
           <p className="text-base text-[var(--color-ink)]/60 font-medium">
             {t('Direct access to your prepaid electric analytics.')}
           </p>
-        </motion.div>
-
-        <motion.div variants={fadeUp} className="flex justify-center">
-          <div className="inline-flex bg-[var(--color-surface)]/50 backdrop-blur-md p-1.5 rounded-full border border-[var(--color-outline)] shadow-sm">
-            {[
-              { key: 'nesco', label: 'NESCO', color: 'var(--color-nesco)' },
-              { key: 'desco', label: 'DESCO', color: 'var(--color-desco)' },
-            ].map((p) => (
-              <motion.button
-                key={p.key}
-                onClick={() => { haptic(); onProviderChange(p.key) }}
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                className={`relative px-8 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
-                  provider === p.key
-                    ? 'bg-[var(--color-surface)] text-[var(--color-ink)] shadow-sm border border-[var(--color-outline)]'
-                    : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] border border-transparent'
-                }`}
-              >
-                {provider === p.key && (
-                  <motion.span
-                    layoutId="provider-indicator"
-                    className="absolute inset-0 rounded-full pointer-events-none"
-                    style={{ boxShadow: `inset 0 0 0 1px ${p.color}`, opacity: 0.2 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                  />
-                )}
-                {p.label}
-              </motion.button>
-            ))}
-          </div>
+          <p className="text-xs text-[var(--color-ink-muted)] font-medium uppercase tracking-wider">
+            Provider auto-detected (NESCO / DESCO)
+          </p>
         </motion.div>
 
         <motion.form variants={fadeUp} onSubmit={handleSubmit} className="relative max-w-lg mx-auto">
           <motion.div
             whileHover={{ scale: 1.01 }}
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-            className={`relative flex items-center bg-[var(--color-surface)] rounded-2xl border transition-all duration-300 shadow-sm hover:shadow-md focus-within:shadow-md focus-within:ring-4 focus-within:ring-opacity-10 ${
-              provider === 'desco'
-                ? 'border-[var(--color-outline)] focus-within:border-[var(--color-desco)] focus-within:ring-[var(--color-desco)]'
-                : 'border-[var(--color-outline)] focus-within:border-[var(--color-nesco)] focus-within:ring-[var(--color-nesco)]'
-            }`}
+            className="relative flex items-center bg-[var(--color-surface)] rounded-2xl border transition-all duration-300 shadow-sm hover:shadow-md focus-within:shadow-md focus-within:ring-4 focus-within:ring-opacity-10 border-[var(--color-outline)] focus-within:border-[var(--color-nesco)] focus-within:ring-[var(--color-nesco)]"
           >
             <input
               type="text"
               inputMode="numeric"
               pattern="[0-9]*"
-              placeholder={provider === 'desco' ? 'Account (8-9) or Meter (11-12)' : 'Account (8) or Meter (11)'}
+              placeholder="Account or Meter (8-12)"
               value={meter}
               onChange={(e) => setMeter(e.target.value.replace(/\D/g, '').slice(0, maxLen))}
               className="w-full h-16 md:h-20 px-6 font-mono text-xl md:text-2xl font-semibold text-[var(--color-ink)] bg-transparent outline-none placeholder:text-[var(--color-ink-muted)] placeholder:font-sans placeholder:font-medium placeholder:text-base md:placeholder:text-lg"
@@ -105,7 +73,7 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
               aria-label={t('Submit meter number')}
               className={`absolute right-3 w-12 h-12 md:w-14 md:h-14 flex items-center justify-center rounded-xl transition-all duration-300 ${
                 isValid
-                  ? (provider === 'desco' ? 'bg-[var(--color-desco)] text-white hover:opacity-90' : 'bg-[var(--color-nesco)] text-white hover:opacity-90')
+                  ? 'bg-[var(--color-nesco)] text-white hover:opacity-90'
                   : 'bg-[var(--color-surface-dim)] text-[var(--color-ink-muted)] cursor-not-allowed'
               }`}
             >

@@ -1,21 +1,20 @@
 import { test, expect } from '@playwright/test'
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('onboarding_done', 'true')
+  })
+})
+
 test('landing page loads with heading', async ({ page }) => {
   await page.goto('/')
   await expect(page.locator('h2')).toContainText('Check your grid')
 })
 
-test('provider toggle switches between NESCO and DESCO', async ({ page }) => {
+test('single auto-detect input is shown', async ({ page }) => {
   await page.goto('/')
-  // Default is NESCO
-  const header = page.locator('h1')
-  await expect(header).toContainText('NESCO')
-  // Click DESCO toggle
-  await page.getByText('DESCO', { exact: true }).click()
-  await expect(header).toContainText('DESCO')
-  // Click back to NESCO
-  await page.getByText('NESCO', { exact: true }).click()
-  await expect(header).toContainText('NESCO')
+  await expect(page.locator('input[inputmode="numeric"]')).toHaveCount(1)
+  await expect(page.locator('input[inputmode="numeric"]')).toHaveAttribute('placeholder', 'Account or Meter (8-12)')
 })
 
 test('input validation shows valid/invalid state', async ({ page }) => {

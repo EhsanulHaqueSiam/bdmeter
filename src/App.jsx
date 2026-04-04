@@ -10,6 +10,7 @@ import useLanguage from './hooks/useLanguage'
 import useSearchHistory from './hooks/useSearchHistory'
 
 const Dashboard = lazy(() => import('./components/Dashboard'))
+const AUTO_PROVIDER = 'auto'
 
 const pageTransition = {
   initial: { opacity: 0, y: 20 },
@@ -73,6 +74,17 @@ function requestNotificationPermission() {
       Notification.requestPermission()
     } catch {}
   }
+}
+
+function getCandidateProviders(meter) {
+  const len = String(meter || '').length
+  // DESCO customer portal treats 8-digit input as accountNo, otherwise meterNo.
+  // NESCO prepaid portal accepts 8-11 digits.
+  if (len === 12) return ['desco']
+  if (len === 8) return ['desco', 'nesco']
+  if (len === 9 || len === 10) return ['nesco', 'desco']
+  if (len === 11) return ['nesco', 'desco']
+  return []
 }
 
 function App() {
@@ -146,68 +158,115 @@ function App() {
     const urlMeter = params.get('meter')
     const urlProvider = params.get('provider')
     if (urlMeter && /^\d{8,12}$/.test(urlMeter)) {
-      fetchData(urlMeter, urlProvider === 'desco' ? 'desco' : 'nesco', { save: false })
+      const sharedProvider = (urlProvider === 'desco' || urlProvider === 'nesco')
+        ? urlProvider
+        : AUTO_PROVIDER
+      fetchData(urlMeter, sharedProvider, { save: false })
       return
     }
     // Otherwise load primary meter
     const primary = getPrimary()
     if (primary && !data && !loading) {
-      fetchData(primary.number, primary.provider || 'nesco')
+      fetchData(primary.number, primary.provider || AUTO_PROVIDER)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const fetchData = async (meter, prov = provider, { save = true } = {}) => {
+  const fetchProviderData = async (meter, prov, requestId) => {
+    const apiUrl = prov === 'desco'
+      ? `/api/desco?account=${meter}&meter=${meter}`
+      : `/api/nesco?meter=${meter}`
+
+    let res, json, lastErr
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (requestId !== requestRef.current) return null
+      try {
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 20000)
+        res = await fetch(apiUrl, { signal: controller.signal })
+        clearTimeout(timeout)
+        json = await res.json()
+        if (!res.ok) throw new Error(json.error || 'Failed to fetch data')
+        if (!json.rechargeHistory?.length && !json.monthlyUsage?.length) {
+          throw new Error('No data found. Please check your number and try again.')
+        }
+        return json
+      } catch (e) {
+        lastErr = e
+        if (e.name === 'AbortError') lastErr = new Error('Request timed out. Retrying...')
+        if (attempt < 2) {
+          setError(`${prov.toUpperCase()} attempt ${attempt + 1} failed. Retrying...`)
+          await new Promise((r) => setTimeout(r, (attempt + 1) * 2000))
+        }
+      }
+    }
+    throw lastErr
+  }
+
+  const fetchData = async (meter, prov = AUTO_PROVIDER, { save = true } = {}) => {
+    const normalizedMeter = String(meter || '').replace(/\D/g, '')
+    const lookupMode = prov || AUTO_PROVIDER
     const requestId = ++requestRef.current
     setLoading(true)
     setError(null)
-    setMeterNo(meter)
-    setProvider(prov)
-    try {
-      const apiUrl = prov === 'desco'
-        ? `/api/desco?account=${meter}&meter=${meter}`
-        : `/api/nesco?meter=${meter}`
+    setMeterNo(normalizedMeter)
 
-      // Retry with exponential backoff (3 attempts)
-      let res, json, lastErr
-      for (let attempt = 0; attempt < 3; attempt++) {
-        if (requestId !== requestRef.current) return
-        try {
-          const controller = new AbortController()
-          const timeout = setTimeout(() => controller.abort(), 20000)
-          res = await fetch(apiUrl, { signal: controller.signal })
-          clearTimeout(timeout)
-          json = await res.json()
-          if (!res.ok) throw new Error(json.error || 'Failed to fetch data')
-          lastErr = null
-          break
-        } catch (e) {
-          lastErr = e
-          if (e.name === 'AbortError') lastErr = new Error('Request timed out. Retrying...')
-          if (attempt < 2) {
-            setError(`Attempt ${attempt + 1} failed. Retrying...`)
-            await new Promise(r => setTimeout(r, (attempt + 1) * 2000))
+    if (!/^\d{8,12}$/.test(normalizedMeter)) {
+      setError('Enter a valid account or meter number (8-12 digits).')
+      setData(null)
+      setLoading(false)
+      return
+    }
+
+    try {
+      let resolvedProvider = lookupMode
+      let json = null
+
+      if (lookupMode === AUTO_PROVIDER) {
+        const providers = getCandidateProviders(normalizedMeter)
+        if (providers.length === 0) {
+          throw new Error('Enter a valid account or meter number (8-12 digits).')
+        }
+
+        const errors = []
+        for (const candidate of providers) {
+          try {
+            const result = await fetchProviderData(normalizedMeter, candidate, requestId)
+            if (requestId !== requestRef.current) return
+            if (!result) return
+            json = result
+            resolvedProvider = candidate
+            break
+          } catch (e) {
+            errors.push(e?.message || 'Lookup failed')
           }
         }
+
+        if (!json) {
+          throw new Error(errors[errors.length - 1] || 'No data found. Please check your number and try again.')
+        }
+      } else {
+        json = await fetchProviderData(normalizedMeter, lookupMode, requestId)
+        if (requestId !== requestRef.current) return
+        if (!json) return
+        resolvedProvider = lookupMode
       }
-      if (lastErr) throw lastErr
-      if (!json.rechargeHistory?.length && !json.monthlyUsage?.length) {
-        throw new Error('No data found. Please check your number and try again.')
-      }
+
       if (requestId !== requestRef.current) return
-      const newData = { ...json, provider: prov }
+      setProvider(resolvedProvider)
+      const newData = { ...json, provider: resolvedProvider }
       setData(newData)
       setLastUpdated(new Date())
       if (save) {
-        addMeter(meter, json.customerInfo?.name || '', prov)
-        addSearch(meter, prov)
+        addMeter(normalizedMeter, json.customerInfo?.name || '', resolvedProvider)
+        addSearch(normalizedMeter, resolvedProvider)
       }
       // Update URL with meter info for sharing
       const url = new URL(window.location)
-      url.searchParams.set('meter', meter)
-      url.searchParams.set('provider', prov)
+      url.searchParams.set('meter', normalizedMeter)
+      url.searchParams.set('provider', resolvedProvider)
       window.history.replaceState({}, '', url)
       // Check low balance notification
-      checkLowBalance(newData, meter)
+      checkLowBalance(newData, normalizedMeter)
       // Confetti for successful last recharge
       if (!confettiShownRef.current && json.rechargeHistory?.[0]) {
         const lastStatus = json.rechargeHistory[0].status
@@ -476,8 +535,6 @@ function App() {
                   onRemoveMeter={removeMeter}
                   onSetPrimary={setPrimary}
                   onSetNickname={setNickname}
-                  provider={provider}
-                  onProviderChange={setProvider}
                   searchHistory={searchHistory}
                   onClearHistory={clearSearchHistory}
                   t={t}

@@ -170,8 +170,8 @@ export default async (req) => {
   const url = new URL(req.url);
   const custNo = url.searchParams.get('meter');
 
-  if (!custNo || !/^\d+$/.test(custNo) || ![8, 11].includes(custNo.length)) {
-    return Response.json({ error: 'Invalid NESCO number. Use 8-digit account or 11-digit meter number.' }, { status: 400 });
+  if (!custNo || !/^\d+$/.test(custNo) || custNo.length < 8 || custNo.length > 11) {
+    return Response.json({ error: 'Invalid NESCO number. Use an 8-11 digit prepaid customer or meter number.' }, { status: 400 });
   }
 
   try {

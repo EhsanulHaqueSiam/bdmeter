@@ -52,8 +52,8 @@ Once installed, the app opens in its own window without browser UI, and works of
 
 ## Features
 
-- **Provider switch** — toggle between NESCO and DESCO
-- **Input validation** — validates by provider-specific number lengths (NESCO: 8 or 11 digits, DESCO: 8-9 or 11-12 digits)
+- **Auto provider detection** — enter one number, app detects NESCO or DESCO automatically
+- **Input validation** — accepts prepaid account/meter numbers (8-12 digits) and resolves provider from live source
 - **Customer info** — name, address, tariff, load, meter type, status, office, feeder
 - **Balance at a glance** — current balance, last recharge, month-over-month change
 - **Recharge history** — full transaction table with PIN copy helper for failed remote recharges (NESCO)

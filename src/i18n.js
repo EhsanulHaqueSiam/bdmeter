@@ -109,6 +109,8 @@ const translations = {
     // Onboarding
     'Enter your meter number': 'Enter your meter number',
     'Type your prepaid meter number to get started. You can find it on your meter or bill.': 'Type your prepaid meter number to get started. You can find it on your meter or bill.',
+    'Auto-detect provider': 'Auto-detect provider',
+    'Just enter your account or meter number. We detect NESCO or DESCO automatically.': 'Just enter your account or meter number. We detect NESCO or DESCO automatically.',
     'Toggle between NESCO and DESCO': 'Toggle between NESCO and DESCO',
     'Switch between electricity providers using the toggle. Each has its own data format and features.': 'Switch between electricity providers using the toggle. Each has its own data format and features.',
     'Save meters for quick access': 'Save meters for quick access',
@@ -247,6 +249,8 @@ const translations = {
     // Onboarding
     'Enter your meter number': 'আপনার মিটার নম্বর লিখুন',
     'Type your prepaid meter number to get started. You can find it on your meter or bill.': 'শুরু করতে আপনার প্রিপেইড মিটার নম্বর লিখুন। আপনার মিটার বা বিলে এটি পাবেন।',
+    'Auto-detect provider': 'প্রোভাইডার স্বয়ংক্রিয় শনাক্তকরণ',
+    'Just enter your account or meter number. We detect NESCO or DESCO automatically.': 'শুধু অ্যাকাউন্ট বা মিটার নম্বর দিন। আমরা স্বয়ংক্রিয়ভাবে NESCO বা DESCO শনাক্ত করি।',
     'Toggle between NESCO and DESCO': 'NESCO এবং DESCO এর মধ্যে পরিবর্তন',
     'Switch between electricity providers using the toggle. Each has its own data format and features.': 'টগল ব্যবহার করে বিদ্যুৎ প্রদানকারী পরিবর্তন করুন। প্রত্যেকের নিজস্ব ডেটা ফরম্যাট আছে।',
     'Save meters for quick access': 'দ্রুত অ্যাক্সেসের জন্য মিটার সংরক্ষণ',
