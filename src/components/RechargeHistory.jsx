@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { exportRechargesAsICS } from '../utils/calendarExport'
 import { haptic } from '../utils/haptic'
@@ -76,8 +76,30 @@ export default function RechargeHistory({ rechargeHistory, provider, t }) {
   const [statusFilter, setStatusFilter] = useState('all')
   const [amountFilter, setAmountFilter] = useState('all')
   const [showFilters, setShowFilters] = useState(false)
+  const [isPrinting, setIsPrinting] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.matchMedia('print').matches
+  })
   const isDesco = provider === 'desco'
   const lastIsSuccess = ['Success', 'Successful'].includes(rechargeHistory[0]?.status)
+
+  useEffect(() => {
+    const media = window.matchMedia('print')
+    const sync = () => setIsPrinting(media.matches)
+    const onBeforePrint = () => setIsPrinting(true)
+    const onAfterPrint = () => setIsPrinting(false)
+
+    sync()
+    window.addEventListener('beforeprint', onBeforePrint)
+    window.addEventListener('afterprint', onAfterPrint)
+    media.addEventListener?.('change', sync)
+
+    return () => {
+      window.removeEventListener('beforeprint', onBeforePrint)
+      window.removeEventListener('afterprint', onAfterPrint)
+      media.removeEventListener?.('change', sync)
+    }
+  }, [])
 
   // Apply filters
   let filtered = rechargeHistory
@@ -113,7 +135,7 @@ export default function RechargeHistory({ rechargeHistory, provider, t }) {
     filtered = filtered.filter(r => r.rechargeAmount > 1000)
   }
 
-  const visible = expanded ? filtered : filtered.slice(0, 10)
+  const visible = expanded || isPrinting ? filtered : filtered.slice(0, 10)
 
   return (
     <motion.div
@@ -227,7 +249,7 @@ export default function RechargeHistory({ rechargeHistory, provider, t }) {
                     whileTap={{ scale: 0.95 }}
                     className={`px-2.5 py-1 rounded-md text-xs font-medium cursor-pointer transition-colors ${
                       statusFilter === opt.key
-                        ? 'bg-[var(--color-ink)] text-[var(--color-base)]'
+                        ? 'bg-[var(--color-ink)] text-[var(--color-canvas)]'
                         : 'bg-[var(--color-surface-dim)] text-[var(--color-ink)]/60 hover:bg-[var(--color-outline)]'
                     }`}
                   >
@@ -252,7 +274,7 @@ export default function RechargeHistory({ rechargeHistory, provider, t }) {
                     whileTap={{ scale: 0.95 }}
                     className={`px-2.5 py-1 rounded-md text-xs font-medium cursor-pointer transition-colors ${
                       amountFilter === opt.key
-                        ? 'bg-[var(--color-ink)] text-[var(--color-base)]'
+                        ? 'bg-[var(--color-ink)] text-[var(--color-canvas)]'
                         : 'bg-[var(--color-surface-dim)] text-[var(--color-ink)]/60 hover:bg-[var(--color-outline)]'
                     }`}
                   >

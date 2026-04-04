@@ -136,7 +136,7 @@ export default function OnboardingTour({ t }) {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => { haptic(); handleNext() }}
-              className="px-6 py-2.5 rounded-xl text-sm font-medium bg-[var(--color-ink)] text-[var(--color-base)] cursor-pointer"
+              className="px-6 py-2.5 rounded-xl text-sm font-medium bg-[var(--color-ink)] text-[var(--color-canvas)] cursor-pointer"
             >
               {step < steps.length - 1 ? t('Next') : t('Get Started')}
             </motion.button>

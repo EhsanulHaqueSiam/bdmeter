@@ -98,7 +98,7 @@ export default function BudgetTracker({ data, t }) {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => { haptic(); handleSave() }}
-            className="px-4 py-2 rounded-lg text-sm font-medium bg-[var(--color-ink)] text-[var(--color-base)] cursor-pointer"
+            className="px-4 py-2 rounded-lg text-sm font-medium bg-[var(--color-ink)] text-[var(--color-canvas)] cursor-pointer"
           >
             {t('Save')}
           </motion.button>

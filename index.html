@@ -5,6 +5,26 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="Check prepaid electricity meter data, recharge history, and usage analytics for NESCO and DESCO." />
+    <meta name="color-scheme" content="light dark" />
+
+    <script>
+      (() => {
+        let theme = 'system'
+        try {
+          const saved = localStorage.getItem('theme')
+          if (saved === 'light' || saved === 'dark' || saved === 'system') theme = saved
+        } catch {}
+
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        const isDark = theme === 'dark' || (theme === 'system' && prefersDark)
+        document.documentElement.classList.toggle('dark', isDark)
+      })()
+    </script>
+    <style>
+      html { background: #f7f6f2; }
+      html.dark { background: #1a1a1a; }
+      body { background: transparent; }
+    </style>
 
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json" />

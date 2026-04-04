@@ -326,7 +326,7 @@ function App() {
   const showOnboarding = !data && !loading && meters.length === 0
 
   return (
-    <div className="min-h-screen bg-[var(--color-base)] text-[var(--color-ink)] selection:bg-[var(--color-outline)] selection:text-[var(--color-ink)] font-sans antialiased flex flex-col">
+    <div className="min-h-screen bg-[var(--color-canvas)] text-[var(--color-ink)] selection:bg-[var(--color-outline)] selection:text-[var(--color-ink)] font-sans antialiased flex flex-col">
       {/* Onboarding tour */}
       {showOnboarding && <OnboardingTour t={t} />}
 
@@ -351,7 +351,7 @@ function App() {
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="sticky top-0 z-50 bg-[var(--color-base)]/80 backdrop-blur-md border-b border-[var(--color-outline)] print:hidden"
+        className="sticky top-0 z-50 bg-[var(--color-canvas)]/80 backdrop-blur-md border-b border-[var(--color-outline)] print:hidden"
       >
         <nav className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between" aria-label="Main navigation">
           <button

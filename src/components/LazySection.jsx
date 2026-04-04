@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 
 export default function LazySection({ children, height = 320, className = '' }) {
-  const [visible, setVisible] = useState(false)
+  const [visible, setVisible] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.matchMedia('print').matches
+  })
   const ref = useRef(null)
 
   useEffect(() => {
@@ -19,7 +22,14 @@ export default function LazySection({ children, height = 320, className = '' }) 
     )
 
     observer.observe(el)
-    return () => observer.disconnect()
+
+    const onBeforePrint = () => setVisible(true)
+    window.addEventListener('beforeprint', onBeforePrint)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('beforeprint', onBeforePrint)
+    }
   }, [])
 
   if (visible) {

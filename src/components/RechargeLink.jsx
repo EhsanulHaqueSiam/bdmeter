@@ -3,11 +3,73 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { haptic } from '../utils/haptic'
 
 const PROVIDERS = [
-  { name: 'bKash', url: 'https://www.bkash.com/', color: '#E2136E' },
-  { name: 'Nagad', url: 'https://nagad.com.bd/', color: '#F6921E' },
-  { name: 'Rocket', url: 'https://www.dutchbanglabank.com/rocket/rocket.html', color: '#8B2F8B' },
-  { name: 'Upay', url: 'https://www.upaybd.com/', color: '#00A651' },
+  {
+    name: 'bKash',
+    deepLink: 'bkash://',
+    webUrl: 'https://www.bkash.com/en/products-services/pay-bill',
+    color: '#E2136E',
+  },
+  {
+    name: 'Nagad',
+    deepLink: 'nagad://',
+    webUrl: 'https://nagad.com.bd/',
+    color: '#F6921E',
+  },
+  {
+    name: 'Rocket',
+    deepLink: 'rocket://',
+    webUrl: 'https://www.dutchbanglabank.com/rocket/rocket.html',
+    color: '#8B2F8B',
+  },
+  {
+    name: 'Upay',
+    deepLink: 'upay://',
+    webUrl: 'https://www.upaybd.com/',
+    color: '#00A651',
+  },
 ]
+
+function isLikelyMobile() {
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '')
+}
+
+function appendMeterQuery(url, meterNo) {
+  if (!meterNo) return url
+  try {
+    const parsed = new URL(url)
+    parsed.searchParams.set('meter', meterNo)
+    return parsed.toString()
+  } catch {
+    return url
+  }
+}
+
+async function copyText(text) {
+  if (!text) return false
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text)
+      return true
+    }
+  } catch {
+    // Fall through to textarea fallback.
+  }
+
+  try {
+    const el = document.createElement('textarea')
+    el.value = text
+    el.setAttribute('readonly', '')
+    el.style.position = 'absolute'
+    el.style.left = '-9999px'
+    document.body.appendChild(el)
+    el.select()
+    document.execCommand('copy')
+    document.body.removeChild(el)
+    return true
+  } catch {
+    return false
+  }
+}
 
 export default function RechargeLink({ meterNo, t }) {
   const [open, setOpen] = useState(false)
@@ -20,12 +82,57 @@ export default function RechargeLink({ meterNo, t }) {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  const copyMeter = async () => {
-    try {
-      await navigator.clipboard.writeText(String(meterNo))
+  const normalizedMeter = String(meterNo || '').replace(/\D/g, '')
+
+  const copyMeter = async (value = normalizedMeter) => {
+    const ok = await copyText(value)
+    if (ok) {
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
-    } catch {}
+    }
+    return ok
+  }
+
+  const openProvider = async (provider) => {
+    haptic()
+    setOpen(false)
+    await copyMeter()
+
+    const fallbackUrl = appendMeterQuery(provider.webUrl, normalizedMeter)
+
+    if (!isLikelyMobile()) {
+      const tab = window.open(fallbackUrl, '_blank', 'noopener,noreferrer')
+      if (!tab) window.location.assign(fallbackUrl)
+      return
+    }
+
+    let fallbackTimer = null
+    const clearFallback = () => {
+      if (fallbackTimer !== null) {
+        window.clearTimeout(fallbackTimer)
+        fallbackTimer = null
+      }
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        clearFallback()
+      }
+    }
+
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    fallbackTimer = window.setTimeout(() => {
+      clearFallback()
+      window.location.assign(fallbackUrl)
+    }, 1400)
+
+    try {
+      window.location.assign(provider.deepLink)
+    } catch {
+      clearFallback()
+      window.location.assign(fallbackUrl)
+    }
   }
 
   return (
@@ -61,22 +168,22 @@ export default function RechargeLink({ meterNo, t }) {
                 {copied ? t('Copied') : t('Copy')}
               </span>
             </button>
-            {/* Payment providers */}
+            <div className="px-4 py-2 text-[10px] text-[var(--color-ink-muted)] border-b border-[var(--color-outline)]">
+              Meter copied automatically before opening app.
+            </div>
             {PROVIDERS.map((p) => (
-              <a
+              <button
                 key={p.name}
-                href={p.url}
-                target="_blank"
-                rel="noopener noreferrer"
+                type="button"
                 className="w-full px-4 py-3 text-left text-sm font-medium text-[var(--color-ink)] hover:bg-[var(--color-surface-dim)] hover:translate-x-0.5 transition-all cursor-pointer flex items-center gap-3 border-b border-[var(--color-outline)] last:border-0"
-                onClick={() => { haptic(); setOpen(false) }}
+                onClick={() => openProvider(p)}
               >
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
                 {p.name}
                 <svg className="w-3 h-3 ml-auto text-[var(--color-ink-muted)]" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
                 </svg>
-              </a>
+              </button>
             ))}
           </motion.div>
         )}

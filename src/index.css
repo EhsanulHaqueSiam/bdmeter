@@ -6,7 +6,7 @@
   --font-mono: 'JetBrains Mono', monospace;
 
   /* Editorial / High-Utility Colors */
-  --color-base: #f7f6f2; /* Soft warm paper */
+  --color-canvas: #f7f6f2; /* Soft warm paper */
   --color-surface: #ffffff; /* Pure white */
   --color-surface-dim: #f0efe9; /* Subtly darker paper for cards/hover */
   
@@ -24,7 +24,7 @@
 
 /* Dark mode overrides */
 html.dark {
-  --color-base: #1a1a1a;
+  --color-canvas: #1a1a1a;
   --color-surface: #242424;
   --color-surface-dim: #1e1e1e;
   --color-ink: #e8e6e1;
@@ -32,9 +32,13 @@ html.dark {
   --color-outline: #3d3d3a;
 }
 
+html {
+  background: var(--color-canvas);
+}
+
 body {
   margin: 0;
-  background: var(--color-base);
+  background: var(--color-canvas);
   color: var(--color-ink);
   font-family: var(--font-sans);
   min-height: 100vh;
@@ -77,7 +81,6 @@ body {
   /* Hide non-essential elements */
   header, footer,
   button, form, input, select,
-  [class*="recharts"], canvas, svg.recharts-surface,
   [data-print-hide] {
     display: none !important;
   }

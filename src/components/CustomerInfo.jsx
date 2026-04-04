@@ -146,7 +146,7 @@ export default function CustomerInfo({ data, meterNo, onReset, isSaved, onSave, 
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => { haptic(); onReset() }}
-            className="px-4 py-2 rounded-xl font-medium text-sm bg-[var(--color-ink)] text-[var(--color-base)] hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap"
+            className="px-4 py-2 rounded-xl font-medium text-sm bg-[var(--color-ink)] text-[var(--color-canvas)] hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap"
           >
             {t('Change Meter')}
           </motion.button>

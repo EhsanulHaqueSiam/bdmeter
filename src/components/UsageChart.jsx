@@ -84,7 +84,7 @@ export default function UsageChart({ monthlyUsage, t }) {
               whileTap={{ scale: 0.95 }}
               className={`relative px-3.5 py-1.5 rounded-lg text-sm font-medium cursor-pointer ${
                 view === v.key
-                  ? 'text-[var(--color-base)] shadow-sm'
+                  ? 'text-[var(--color-canvas)] shadow-sm'
                   : 'bg-[var(--color-surface)] text-[var(--color-ink)]/70 border border-[var(--color-outline)] hover:bg-[var(--color-surface-dim)]'
               }`}
             >
