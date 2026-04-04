@@ -2,44 +2,39 @@ export default function CustomerInfo({ data, meterNo, onReset }) {
   const { customerInfo } = data
 
   const fields = [
-    { label: 'Consumer No', value: customerInfo?.consumerNo || meterNo },
-    { label: 'Meter No', value: customerInfo?.meterNo || '-' },
-    { label: 'Tariff', value: customerInfo?.tariff || '-' },
-    { label: 'Load', value: customerInfo?.approvedLoad ? `${customerInfo.approvedLoad} kW` : '-' },
-    { label: 'Meter Type', value: customerInfo?.meterType || '-' },
-    { label: 'Status', value: customerInfo?.meterStatus || '-' },
-    { label: 'Office', value: customerInfo?.office || '-' },
-    { label: 'Feeder', value: customerInfo?.feeder || '-' },
-    { label: 'Installed', value: customerInfo?.installDate || '-' },
-    { label: 'Min Recharge', value: customerInfo?.minRecharge ? `৳${customerInfo.minRecharge}` : '-' },
+    { label: 'CONSUMER NO', value: customerInfo?.consumerNo || meterNo },
+    { label: 'METER NO', value: customerInfo?.meterNo || '-' },
+    { label: 'TARIFF', value: customerInfo?.tariff || '-' },
+    { label: 'LOAD', value: customerInfo?.approvedLoad ? `${customerInfo.approvedLoad} kW` : '-' },
+    { label: 'TYPE', value: customerInfo?.meterType || '-' },
+    { label: 'STATUS', value: customerInfo?.meterStatus || '-' },
+    { label: 'OFFICE', value: customerInfo?.office || '-' },
+    { label: 'FEEDER', value: customerInfo?.feeder || '-' },
+    { label: 'INSTALLED', value: customerInfo?.installDate || '-' },
+    { label: 'MIN RECHARGE', value: customerInfo?.minRecharge ? `৳${customerInfo.minRecharge}` : '-' },
   ]
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center text-white">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-            </svg>
-          </div>
-          <div>
-            <h3 className="font-bold text-slate-900 text-sm">{customerInfo?.name || 'Customer'}</h3>
-            <p className="text-xs text-slate-400">{customerInfo?.address || 'NESCO Prepaid Customer'}</p>
-          </div>
+    <div className="brutal-card">
+      <div className="px-6 py-5 brutal-border-b flex flex-col sm:flex-row sm:items-start justify-between gap-4 bg-[var(--color-surface-dim)]">
+        <div>
+          <h3 className="font-black text-2xl uppercase tracking-tighter">{customerInfo?.name || 'CUSTOMER'}</h3>
+          <p className="font-mono text-[10px] font-bold uppercase tracking-widest mt-1">
+            {customerInfo?.address || 'NESCO PREPAID CUSTOMER'}
+          </p>
         </div>
         <button
           onClick={onReset}
-          className="text-xs font-medium text-slate-400 hover:text-slate-600 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
+          className="brutal-btn bg-[var(--color-ink)] text-[var(--color-surface)] px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-widest cursor-pointer whitespace-nowrap"
         >
-          Change Meter
+          CHANGE METER
         </button>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 divide-x divide-y divide-slate-100">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         {fields.map((f, i) => (
-          <div key={i} className="px-4 py-3">
-            <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">{f.label}</div>
-            <div className="text-sm font-semibold text-slate-700 mt-0.5 truncate">{f.value}</div>
+          <div key={i} className="p-4 border-r-2 border-b-2 border-[var(--color-ink)]">
+            <div className="font-mono text-[10px] font-bold text-[var(--color-ink)] opacity-60 uppercase tracking-widest mb-1">{f.label}</div>
+            <div className="font-bold text-sm uppercase truncate">{f.value}</div>
           </div>
         ))}
       </div>

@@ -4,36 +4,36 @@ import {
 } from 'recharts'
 
 const MEDIUM_COLORS = {
-  BKASH: '#E2136E',
-  NAGAD: '#F6921E',
-  ROCKET: '#8B2D8B',
-  UPAY: '#00A651',
-  Nesco: '#334464',
+  BKASH: 'var(--color-accent-red)',
+  NAGAD: 'var(--color-warning)',
+  ROCKET: 'var(--color-accent-purple)',
+  UPAY: 'var(--color-success)',
+  Nesco: 'var(--color-nesco)',
 }
 
-const STATUS_COLORS = { Success: '#10b981', Failed: '#f59e0b' }
+const STATUS_COLORS = { Success: 'var(--color-success)', Failed: 'var(--color-danger)' }
 
 function CustomTooltip({ active, payload }) {
   if (!active || !payload?.length) return null
   const d = payload[0]
   return (
-    <div className="bg-slate-900 text-white text-xs rounded-xl px-4 py-3 shadow-xl border border-slate-700">
-      <div className="flex items-center gap-2">
-        <span className="w-2 h-2 rounded-full" style={{ background: d.payload.fill || d.color }} />
-        <span className="font-semibold">{d.name || d.payload.name}: {d.value}</span>
+    <div className="bg-[var(--color-surface)] text-[var(--color-ink)] brutal-border brutal-shadow-sm p-3">
+      <div className="flex items-center gap-3 font-mono text-xs font-bold uppercase tracking-widest">
+        <span className="w-3 h-3 brutal-border" style={{ background: d.payload.fill || d.color }} />
+        <span>{d.name || d.payload.name}: {d.value}</span>
       </div>
     </div>
   )
 }
 
-function PieLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }) {
+function PieLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent }) {
   if (percent < 0.05) return null
   const RADIAN = Math.PI / 180
   const radius = innerRadius + (outerRadius - innerRadius) * 0.5
   const x = cx + radius * Math.cos(-midAngle * RADIAN)
   const y = cy + radius * Math.sin(-midAngle * RADIAN)
   return (
-    <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={600}>
+    <text x={x} y={y} fill="var(--color-ink)" textAnchor="middle" dominantBaseline="central" fontSize={10} fontFamily="monospace" fontWeight="bold" className="drop-shadow-md">
       {`${(percent * 100).toFixed(0)}%`}
     </text>
   )
@@ -59,8 +59,8 @@ export default function RechargeInsights({ rechargeHistory, provider }) {
     .sort((a, b) => b.value - a.value)
 
   const statusData = [
-    { name: 'Auto-applied', value: successCount },
-    { name: 'Manual PIN', value: failedCount },
+    { name: 'AUTO-APPLIED', value: successCount },
+    { name: 'MANUAL PIN', value: failedCount },
   ]
 
   // Recharge amounts over time (group by month)
@@ -95,33 +95,35 @@ export default function RechargeInsights({ rechargeHistory, provider }) {
   const maxRecharge = Math.max(...rechargeHistory.map(r => r.rechargeAmount))
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-      <div className="mb-6">
-        <h3 className="font-bold text-slate-900 text-base">Recharge Insights</h3>
-        <p className="text-xs text-slate-400 mt-0.5">Payment patterns across {rechargeHistory.length} transactions</p>
+    <div className="brutal-card p-6">
+      <div className="mb-8">
+        <h3 className="font-black text-2xl uppercase tracking-tighter">RECHARGE INSIGHTS</h3>
+        <p className="font-mono text-[10px] font-bold uppercase tracking-widest mt-1 opacity-70">
+          PATTERNS ACROSS {rechargeHistory.length} TRANSACTIONS
+        </p>
       </div>
 
       {/* Summary row */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        <div className="bg-slate-50 rounded-xl px-4 py-3 text-center">
-          <div className="text-lg font-bold text-slate-900">৳{totalRecharged.toLocaleString()}</div>
-          <div className="text-[11px] text-slate-400 font-medium">Total Recharged</div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+        <div className="bg-[var(--color-surface-dim)] brutal-border p-4">
+          <div className="font-mono text-2xl font-bold tracking-tighter">৳{totalRecharged.toLocaleString()}</div>
+          <div className="font-mono text-[10px] font-bold uppercase tracking-widest mt-1">TOTAL RECHARGED</div>
         </div>
-        <div className="bg-slate-50 rounded-xl px-4 py-3 text-center">
-          <div className="text-lg font-bold text-slate-900">৳{avgRecharge.toFixed(0)}</div>
-          <div className="text-[11px] text-slate-400 font-medium">Avg per Recharge</div>
+        <div className="bg-[var(--color-surface-dim)] brutal-border p-4">
+          <div className="font-mono text-2xl font-bold tracking-tighter">৳{avgRecharge.toFixed(0)}</div>
+          <div className="font-mono text-[10px] font-bold uppercase tracking-widest mt-1">AVG PER RECHARGE</div>
         </div>
-        <div className="bg-slate-50 rounded-xl px-4 py-3 text-center">
-          <div className="text-lg font-bold text-slate-900">৳{maxRecharge.toLocaleString()}</div>
-          <div className="text-[11px] text-slate-400 font-medium">Largest Recharge</div>
+        <div className="bg-[var(--color-surface-dim)] brutal-border p-4">
+          <div className="font-mono text-2xl font-bold tracking-tighter">৳{maxRecharge.toLocaleString()}</div>
+          <div className="font-mono text-[10px] font-bold uppercase tracking-widest mt-1">LARGEST RECHARGE</div>
         </div>
       </div>
 
       {/* Charts row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Payment methods pie */}
         <div>
-          <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Payment Methods</h4>
+          <h4 className="font-mono text-xs font-bold uppercase tracking-widest border-b-2 border-[var(--color-ink)] pb-2 mb-4">PAYMENT METHODS</h4>
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -132,17 +134,19 @@ export default function RechargeInsights({ rechargeHistory, provider }) {
                   dataKey="value"
                   labelLine={false}
                   label={PieLabel}
+                  stroke="var(--color-ink)"
+                  strokeWidth={2}
                 >
                   {mediumData.map((entry) => (
-                    <Cell key={entry.name} fill={MEDIUM_COLORS[entry.name] || '#94a3b8'} />
+                    <Cell key={entry.name} fill={MEDIUM_COLORS[entry.name] || 'var(--color-surface-dim)'} />
                   ))}
                 </Pie>
                 <Tooltip content={<CustomTooltip />} />
                 <Legend
-                  iconSize={8} iconType="circle"
-                  wrapperStyle={{ fontSize: '11px' }}
-                  formatter={(value, entry) => (
-                    <span className="text-slate-600">{value} ({mediumCounts[value]})</span>
+                  iconType="square" iconSize={10}
+                  wrapperStyle={{ fontSize: '10px', fontFamily: 'monospace', fontWeight: 'bold' }}
+                  formatter={(value) => (
+                    <span className="text-[var(--color-ink)]">{value} ({mediumCounts[value]})</span>
                   )}
                 />
               </PieChart>
@@ -154,26 +158,23 @@ export default function RechargeInsights({ rechargeHistory, provider }) {
         <div>
           {isNesco ? (
             <>
-              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Remote Recharge Rate</h4>
+              <h4 className="font-mono text-xs font-bold uppercase tracking-widest border-b-2 border-[var(--color-ink)] pb-2 mb-4">REMOTE RECHARGE</h4>
               <div className="h-48">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={statusData} cx="50%" cy="50%" innerRadius={35} outerRadius={70} dataKey="value" labelLine={false} label={PieLabel}>
+                    <Pie data={statusData} cx="50%" cy="50%" innerRadius={35} outerRadius={70} dataKey="value" labelLine={false} label={PieLabel} stroke="var(--color-ink)" strokeWidth={2}>
                       <Cell fill={STATUS_COLORS.Success} />
                       <Cell fill={STATUS_COLORS.Failed} />
                     </Pie>
                     <Tooltip content={<CustomTooltip />} />
-                    <Legend iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '11px' }} formatter={(value) => <span className="text-slate-600">{value}</span>} />
+                    <Legend iconType="square" iconSize={10} wrapperStyle={{ fontSize: '10px', fontFamily: 'monospace', fontWeight: 'bold' }} formatter={(value) => <span className="text-[var(--color-ink)]">{value}</span>} />
                   </PieChart>
                 </ResponsiveContainer>
-              </div>
-              <div className="text-center mt-1">
-                <span className="text-xs text-slate-400">{((successCount / rechargeHistory.length) * 100).toFixed(0)}% auto-applied</span>
               </div>
             </>
           ) : (
             <>
-              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Recharge Amounts</h4>
+              <h4 className="font-mono text-xs font-bold uppercase tracking-widest border-b-2 border-[var(--color-ink)] pb-2 mb-4">AMOUNTS</h4>
               <div className="h-48">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -184,16 +185,13 @@ export default function RechargeInsights({ rechargeHistory, provider }) {
                         buckets[label] = (buckets[label] || 0) + 1
                       })
                       return Object.entries(buckets).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
-                    })()} cx="50%" cy="50%" innerRadius={35} outerRadius={70} dataKey="value" labelLine={false} label={PieLabel}>
-                      {['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#f43f5e', '#6366f1', '#94a3b8'].map((c, i) => <Cell key={i} fill={c} />)}
+                    })()} cx="50%" cy="50%" innerRadius={35} outerRadius={70} dataKey="value" labelLine={false} label={PieLabel} stroke="var(--color-ink)" strokeWidth={2}>
+                      {['var(--color-nesco)', 'var(--color-warning)', 'var(--color-success)', 'var(--color-accent-purple)', 'var(--color-danger)', 'var(--color-surface-dim)'].map((c, i) => <Cell key={i} fill={c} />)}
                     </Pie>
                     <Tooltip content={<CustomTooltip />} />
-                    <Legend iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '11px' }} formatter={(value) => <span className="text-slate-600">{value}</span>} />
+                    <Legend iconType="square" iconSize={10} wrapperStyle={{ fontSize: '10px', fontFamily: 'monospace', fontWeight: 'bold' }} formatter={(value) => <span className="text-[var(--color-ink)]">{value}</span>} />
                   </PieChart>
                 </ResponsiveContainer>
-              </div>
-              <div className="text-center mt-1">
-                <span className="text-xs text-slate-400">{rechargeHistory.length} total recharges</span>
               </div>
             </>
           )}
@@ -201,26 +199,26 @@ export default function RechargeInsights({ rechargeHistory, provider }) {
 
         {/* Monthly recharge frequency */}
         <div>
-          <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Recharge Frequency</h4>
+          <h4 className="font-mono text-xs font-bold uppercase tracking-widest border-b-2 border-[var(--color-ink)] pb-2 mb-4">FREQUENCY</h4>
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={rechargeTimeline.slice(-12)} margin={{ top: 0, right: 0, left: -25, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="month" tick={{ fontSize: 9, fill: '#94a3b8' }} tickLine={false} axisLine={false} interval={1} />
-                <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-ink)" strokeOpacity={0.2} vertical={false} />
+                <XAxis dataKey="month" tick={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 'bold', fill: 'var(--color-ink)' }} tickLine={false} axisLine={{ stroke: 'var(--color-ink)', strokeWidth: 2 }} interval={1} />
+                <YAxis tick={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 'bold', fill: 'var(--color-ink)' }} tickLine={false} axisLine={{ stroke: 'var(--color-ink)', strokeWidth: 2 }} />
                 <Tooltip
                   content={({ active, payload, label }) => {
                     if (!active || !payload?.length) return null
                     return (
-                      <div className="bg-slate-900 text-white text-xs rounded-xl px-4 py-3 shadow-xl border border-slate-700">
-                        <p className="font-semibold mb-1">{label}</p>
-                        <p className="text-slate-300">{payload[0].value} recharges</p>
-                        <p className="text-slate-300">৳{payload[0].payload.total.toLocaleString()} total</p>
+                      <div className="bg-[var(--color-surface)] text-[var(--color-ink)] brutal-border brutal-shadow-sm p-3">
+                        <p className="font-mono text-[10px] font-bold uppercase tracking-widest mb-2 border-b-2 border-[var(--color-ink)] pb-1">{label}</p>
+                        <p className="font-mono text-xs font-bold uppercase">{payload[0].value} RECHARGES</p>
+                        <p className="font-mono text-xs font-bold uppercase mt-1">৳{payload[0].payload.total.toLocaleString()} TOTAL</p>
                       </div>
                     )
                   }}
                 />
-                <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} />
+                <Bar dataKey="count" fill="var(--color-nesco)" stroke="var(--color-ink)" strokeWidth={2} />
               </BarChart>
             </ResponsiveContainer>
           </div>

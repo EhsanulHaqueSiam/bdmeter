@@ -126,6 +126,12 @@ export default async (req) => {
 
     // Normalize recharge history
     const rechargeHistory = (rechargeRes?.data || []).map((r, i) => ({
+      // DESCO responses vary; prefer explicit unit-like fields and avoid speculative math.
+      probableKwh: Number.isFinite(Number(r.energyUnit))
+        ? Number(r.energyUnit)
+        : Number.isFinite(Number(r.probableKwh))
+          ? Number(r.probableKwh)
+          : 0,
       serial: String(i + 1),
       seqNo: String(r.seqNo || ''),
       tokenNo: r.tokenNo || '',
@@ -137,7 +143,6 @@ export default async (req) => {
       rebate: r.rebate || 0,
       electricity: r.energyAmount || 0,
       rechargeAmount: r.totalAmount || 0,
-      probableKwh: r.energyAmount && r.revenue ? +(r.energyAmount / (r.revenue / r.totalAmount * r.energyAmount) * (r.energyAmount / r.revenue)).toFixed(1) : 0,
       medium: r.rechargeOperator || 'Online',
       date: r.rechargeDate || '',
       status: r.orderStatus === 'Successful' ? 'Success' : r.orderStatus || '',

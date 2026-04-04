@@ -12,157 +12,137 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
     if (isValid) onSubmit(meter, provider)
   }
 
-  const providerColor = provider === 'desco' ? 'orange' : 'primary'
-
   return (
-    <div className="min-h-[70vh] flex items-center justify-center">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className={`inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br ${provider === 'desco' ? 'from-orange-500 to-orange-600 shadow-orange-500/30' : 'from-primary-500 to-primary-700 shadow-primary-500/30'} shadow-2xl mb-6`}>
-            <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
-            </svg>
-          </div>
-          <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Prepaid Meter Dashboard</h2>
-          <p className="text-slate-500 mt-2 text-base">View recharge history, usage analytics, and more</p>
+    <div className="min-h-[60vh] flex items-center justify-center py-12">
+      <div className="w-full max-w-xl mx-auto">
+        <div className="mb-12">
+          <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter leading-none mb-4">
+            CHECK <br/>
+            <span className={provider === 'desco' ? 'text-[var(--color-desco)]' : 'text-[var(--color-nesco)]'}>YOUR GRID</span>
+          </h2>
+          <p className="font-mono text-sm md:text-base font-bold uppercase tracking-widest max-w-sm">
+            Direct access to your prepaid electric meter analytics.
+          </p>
         </div>
 
         {/* Provider toggle */}
-        <div className="flex bg-slate-100 rounded-2xl p-1.5 mb-6 gap-1">
+        <div className="flex bg-[var(--color-ink)] p-1.5 brutal-shadow mb-8">
           {[
-            { key: 'nesco', label: 'NESCO', sub: 'Northern Region' },
-            { key: 'desco', label: 'DESCO', sub: 'Dhaka Region' },
+            { key: 'nesco', label: 'NESCO', sub: 'NORTHERN' },
+            { key: 'desco', label: 'DESCO', sub: 'DHAKA' },
           ].map((p) => (
             <button
               key={p.key}
               onClick={() => onProviderChange(p.key)}
-              className={`flex-1 py-3 px-4 rounded-xl text-center transition-all cursor-pointer ${
+              className={`flex-1 py-3 px-4 text-center transition-all cursor-pointer border-2 ${
                 provider === p.key
-                  ? 'bg-white shadow-md text-slate-900'
-                  : 'text-slate-400 hover:text-slate-600'
+                  ? 'bg-[var(--color-base)] border-[var(--color-ink)] text-[var(--color-ink)]'
+                  : 'bg-transparent border-transparent text-[var(--color-surface-dim)] hover:text-white'
               }`}
             >
-              <div className="text-sm font-bold">{p.label}</div>
-              <div className="text-[10px] font-medium opacity-60">{p.sub}</div>
+              <div className="text-lg font-black tracking-tight">{p.label}</div>
+              <div className="font-mono text-[10px] font-bold tracking-widest">{p.sub}</div>
             </button>
           ))}
         </div>
 
-        {/* Saved meters */}
-        {meters.length > 0 && (
-          <div className="mb-6">
-            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2.5 px-1">Saved Meters</div>
-            <div className="space-y-2">
-              {meters.map((m) => (
-                <div
-                  key={m.number}
-                  className="group flex items-center gap-3 bg-white border border-slate-200 hover:border-primary-300 rounded-xl px-4 py-3 transition-all hover:shadow-md cursor-pointer"
-                  onClick={() => onSwitchMeter(m.number, m.provider || 'nesco')}
-                >
-                  <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${(m.provider || 'nesco') === 'desco' ? 'from-orange-50 to-orange-100 text-orange-500' : 'from-slate-100 to-slate-200 text-slate-500'} flex items-center justify-center group-hover:shadow transition-all`}>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-800 text-sm">{m.number}</span>
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${(m.provider || 'nesco') === 'desco' ? 'bg-orange-50 text-orange-500' : 'bg-primary-50 text-primary-600'}`}>
-                        {(m.provider || 'nesco').toUpperCase()}
-                      </span>
-                      {m.primary && (
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-600">PRIMARY</span>
-                      )}
-                    </div>
-                    {m.name && <div className="text-xs text-slate-400 truncate">{m.name}</div>}
-                  </div>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {!m.primary && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onSetPrimary(m.number) }}
-                        className="p-1.5 rounded-lg hover:bg-amber-50 text-slate-300 hover:text-amber-500 transition-colors cursor-pointer"
-                        title="Set as primary"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
-                        </svg>
-                      </button>
-                    )}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onRemoveMeter(m.number) }}
-                      className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-300 hover:text-rose-500 transition-colors cursor-pointer"
-                      title="Remove meter"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              ))}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="relative group">
+            <div className="absolute -inset-1 bg-[var(--color-ink)] opacity-0 group-focus-within:opacity-10 transition-opacity" />
+            <div className="relative flex">
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder={provider === 'desco' ? 'ACCOUNT (8-9) OR METER (11-12)' : 'ACCOUNT (8) OR METER (11)'}
+                value={meter}
+                onChange={(e) => setMeter(e.target.value.replace(/\D/g, '').slice(0, maxLen))}
+                className={`w-full h-16 md:h-20 px-6 font-mono text-xl md:text-2xl font-bold bg-[var(--color-surface)] brutal-border outline-none transition-all placeholder:text-gray-400 placeholder:font-sans placeholder:text-sm placeholder:font-bold focus:shadow-[6px_6px_0_0_var(--color-ink)] ${provider === 'desco' ? 'focus:border-[var(--color-desco)]' : 'focus:border-[var(--color-nesco)]'}`}
+                autoFocus={meters.length === 0}
+              />
+              <button
+                type="submit"
+                disabled={!isValid}
+                className={`ml-2 w-20 md:w-32 h-16 md:h-20 flex items-center justify-center brutal-btn cursor-pointer ${
+                  provider === 'desco'
+                    ? 'bg-[var(--color-desco)] text-white'
+                    : 'bg-[var(--color-nesco)] text-white'
+                }`}
+              >
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
+                  <path strokeLinecap="square" strokeLinejoin="miter" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                </svg>
+              </button>
             </div>
-            <div className="mt-4 mb-2 flex items-center gap-3">
-              <div className="flex-1 h-px bg-slate-200" />
-              <span className="text-[11px] font-medium text-slate-300 uppercase">or add new</span>
-              <div className="flex-1 h-px bg-slate-200" />
-            </div>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="relative">
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              placeholder={provider === 'desco' ? 'Account (8-9) or Meter (11-12) number' : 'Account (8 digits) or Meter (11 digits)'}
-              value={meter}
-              onChange={(e) => setMeter(e.target.value.replace(/\D/g, '').slice(0, maxLen))}
-              className={`w-full h-14 px-5 pr-14 text-lg font-medium text-slate-900 bg-white border-2 border-slate-200 rounded-2xl outline-none transition-all duration-200 placeholder:text-slate-300 hover:border-slate-300 ${provider === 'desco' ? 'focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10' : 'focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10'}`}
-              autoFocus={meters.length === 0}
-            />
-            <div className="absolute right-4 top-1/2 -translate-y-1/2">
+            
+            <div className="absolute right-24 md:right-36 top-1/2 -translate-y-1/2 pointer-events-none">
               {meter.length > 0 && (
-                <span className={`text-xs font-semibold px-2 py-1 rounded-lg ${isValid ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
-                  {meter.length} digits {isValid ? '✓' : ''}
+                <span className={`font-mono text-[10px] font-bold px-2 py-1 brutal-border ${isValid ? 'bg-[var(--color-success)] text-white' : 'bg-[var(--color-surface-dim)]'}`}>
+                  LEN: {meter.length} {isValid ? '✓' : '×'}
                 </span>
               )}
             </div>
           </div>
-
-          <button
-            type="submit"
-            disabled={!isValid}
-            className={`w-full h-14 font-semibold text-base rounded-2xl transition-all duration-200 active:scale-[0.98] cursor-pointer disabled:cursor-not-allowed disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 disabled:shadow-none text-white ${
-              provider === 'desco'
-                ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-lg shadow-orange-500/25 hover:shadow-xl hover:shadow-orange-500/30'
-                : 'bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30'
-            }`}
-          >
-            View Dashboard
-          </button>
         </form>
 
         {error && (
-          <div className="mt-4 px-4 py-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-600 text-sm font-medium text-center">
-            {error}
+          <div className="mt-6 px-5 py-4 bg-[var(--color-danger)] text-white font-mono text-sm font-bold brutal-border brutal-shadow-sm uppercase">
+            ERROR: {error}
           </div>
         )}
 
-        <div className="mt-8 flex items-center justify-center gap-6 text-xs text-slate-400">
-          <span className="flex items-center gap-1.5">
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-            </svg>
-            Data from {provider.toUpperCase()}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Real-time
-          </span>
-        </div>
+        {/* Saved meters */}
+        {meters.length > 0 && (
+          <div className="mt-12">
+            <h3 className="font-mono text-xs font-bold uppercase tracking-widest border-b-2 border-[var(--color-ink)] pb-2 mb-4">
+              SAVED IDENTIFIERS
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {meters.map((m) => (
+                <div
+                  key={`${m.provider || 'nesco'}:${m.number}`}
+                  className="group flex flex-col justify-between bg-[var(--color-surface)] brutal-border p-4 brutal-shadow-sm hover:brutal-shadow cursor-pointer transition-all hover:-translate-y-1"
+                  onClick={() => onSwitchMeter(m.number, m.provider || 'nesco')}
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <div className={`px-2 py-0.5 brutal-border font-mono text-[10px] font-bold text-white ${
+                      (m.provider || 'nesco') === 'desco' ? 'bg-[var(--color-desco)]' : 'bg-[var(--color-nesco)]'
+                    }`}>
+                      {(m.provider || 'nesco').toUpperCase()}
+                    </div>
+                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {!m.primary && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onSetPrimary(m.number, m.provider || 'nesco') }}
+                          className="font-mono text-[10px] font-bold hover:underline"
+                          title="Set Primary"
+                        >
+                          [STAR]
+                        </button>
+                      )}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onRemoveMeter(m.number, m.provider || 'nesco') }}
+                        className="font-mono text-[10px] font-bold text-[var(--color-danger)] hover:underline"
+                        title="Remove"
+                      >
+                        [DEL]
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-mono text-xl font-bold flex items-center gap-2">
+                      {m.number}
+                      {m.primary && (
+                        <span className="w-2.5 h-2.5 bg-[var(--color-warning)] brutal-border rounded-none" />
+                      )}
+                    </div>
+                    {m.name && <div className="text-sm font-bold uppercase mt-1 opacity-70 truncate">{m.name}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

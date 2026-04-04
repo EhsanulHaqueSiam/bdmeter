@@ -1,44 +1,86 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=JetBrains+Mono:wght@400..800&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-bangla: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
-  --color-primary-50: #eff6ff;
-  --color-primary-100: #dbeafe;
-  --color-primary-200: #bfdbfe;
-  --color-primary-300: #93c5fd;
-  --color-primary-400: #60a5fa;
-  --color-primary-500: #3b82f6;
-  --color-primary-600: #2563eb;
-  --color-primary-700: #1d4ed8;
-  --color-primary-800: #1e40af;
-  --color-primary-900: #1e3a8a;
-  --color-emerald-50: #ecfdf5;
-  --color-emerald-500: #10b981;
-  --color-emerald-600: #059669;
-  --color-amber-50: #fffbeb;
-  --color-amber-500: #f59e0b;
-  --color-rose-50: #fff1f2;
-  --color-rose-500: #f43f5e;
-  --color-slate-50: #f8fafc;
-  --color-slate-100: #f1f5f9;
-  --color-slate-200: #e2e8f0;
-  --color-slate-300: #cbd5e1;
-  --color-slate-400: #94a3b8;
-  --color-slate-500: #64748b;
-  --color-slate-600: #475569;
-  --color-slate-700: #334155;
-  --color-slate-800: #1e293b;
-  --color-slate-900: #0f172a;
-  --color-slate-950: #020617;
+  --font-sans: 'Bricolage Grotesque', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Editorial Tech / Brutalist Colors */
+  --color-base: #f4f4f0; /* Off white / newsprint */
+  --color-ink: #111111;  /* Almost black */
+  --color-surface: #ffffff;
+  --color-surface-dim: #e8e8e3;
+  
+  --color-nesco: #0055ff;
+  --color-desco: #ff4400;
+
+  --color-success: #00c853;
+  --color-warning: #ffd600;
+  --color-danger: #ff0033;
 }
 
 body {
   margin: 0;
-  background: #f8fafc;
+  background: var(--color-base);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
-#root {
-  min-height: 100vh;
+::selection {
+  background: var(--color-ink);
+  color: var(--color-surface);
+}
+
+/* Brutalist Utilities */
+.brutal-border {
+  border: 2px solid var(--color-ink);
+}
+
+.brutal-border-b {
+  border-bottom: 2px solid var(--color-ink);
+}
+
+.brutal-border-r {
+  border-right: 2px solid var(--color-ink);
+}
+
+.brutal-shadow {
+  box-shadow: 4px 4px 0 0 var(--color-ink);
+  transition: transform 0.15s cubic-bezier(0, 0, 0.2, 1), box-shadow 0.15s cubic-bezier(0, 0, 0.2, 1);
+}
+
+.brutal-shadow-sm {
+  box-shadow: 2px 2px 0 0 var(--color-ink);
+}
+
+.brutal-btn {
+  border: 2px solid var(--color-ink);
+  box-shadow: 4px 4px 0 0 var(--color-ink);
+  transition: transform 0.1s cubic-bezier(0, 0, 0.2, 1), box-shadow 0.1s cubic-bezier(0, 0, 0.2, 1);
+}
+
+.brutal-btn:active:not(:disabled) {
+  transform: translate(4px, 4px);
+  box-shadow: 0px 0px 0 0 var(--color-ink);
+}
+
+.brutal-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: translate(4px, 4px);
+  box-shadow: 0px 0px 0 0 var(--color-ink);
+}
+
+.brutal-card {
+  background: var(--color-surface);
+  border: 2px solid var(--color-ink);
+  box-shadow: 6px 6px 0 0 var(--color-ink);
+}
+
+/* Ensure recharts fits the aesthetic */
+.recharts-tooltip-cursor {
+  fill: var(--color-surface-dim);
+  opacity: 0.5;
 }

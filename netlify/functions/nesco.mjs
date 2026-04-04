@@ -126,7 +126,7 @@ function parseMonthlyUsage($) {
     $(row).find('td').each((_, cell) => {
       cells.push($(cell).text().trim().replace(/,/g, ''));
     });
-    if (cells.length >= 12) {
+    if (cells.length >= 13) {
       rows.push({
         year: cells[0], month: cells[1],
         totalRecharge: parseFloat(cells[2]) || 0,
