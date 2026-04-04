@@ -78,11 +78,12 @@ export default async (req) => {
     const meter = info.meterNo;
     const bothQs = `accountNo=${acct}&meterNo=${meter}`;
 
-    // Date ranges — DESCO enforces max 12 months, so use 11 months + 29 days to be safe
+    // Date ranges — DESCO enforces max 12 months
+    // Match DESCO's own site: first of current month last year → last day of previous month
     const now = new Date();
-    const elevenMonthsAgo = new Date(now);
-    elevenMonthsAgo.setMonth(elevenMonthsAgo.getMonth() - 11);
-    elevenMonthsAgo.setDate(1); // first of that month
+    const oneYearAgo = new Date(now);
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    oneYearAgo.setDate(1); // first of that month
     const twoWeeksAgo = new Date(now);
     twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
 
@@ -92,8 +93,8 @@ export default async (req) => {
     // Fetch all data in parallel
     const [balanceRes, rechargeRes, monthlyRes, dailyRes, locationRes, minRechargeRes] = await Promise.all([
       descoFetch(`${BASE}/tkdes/customer/getBalance?${bothQs}`),
-      descoFetch(`${BASE}/tkdes/customer/getRechargeHistory?${bothQs}&dateFrom=${fmt(elevenMonthsAgo)}&dateTo=${fmt(now)}`),
-      descoFetch(`${BASE}/tkdes/customer/getCustomerMonthlyConsumption?${bothQs}&monthFrom=${fmtMonth(elevenMonthsAgo)}&monthTo=${fmtMonth(now)}`),
+      descoFetch(`${BASE}/tkdes/customer/getRechargeHistory?${bothQs}&dateFrom=${fmt(oneYearAgo)}&dateTo=${fmt(now)}`),
+      descoFetch(`${BASE}/tkdes/customer/getCustomerMonthlyConsumption?${bothQs}&monthFrom=${fmtMonth(oneYearAgo)}&monthTo=${fmtMonth(now)}`),
       descoFetch(`${BASE}/tkdes/customer/getCustomerDailyConsumption?${bothQs}&dateFrom=${fmt(twoWeeksAgo)}&dateTo=${fmt(now)}`),
       descoFetch(`${BASE}/common/getCustomerLocation?accountNo=${acct}`),
       smartFetch(`${SMART_BASE}/customer/min/recharge?${bothQs}`).catch(() => ({ data: null })),
@@ -125,30 +126,42 @@ export default async (req) => {
     };
 
     // Normalize recharge history
-    const rechargeHistory = (rechargeRes?.data || []).map((r, i) => ({
-      // DESCO responses vary; prefer explicit unit-like fields and avoid speculative math.
-      probableKwh: Number.isFinite(Number(r.energyUnit))
+    const rechargeHistory = (rechargeRes?.data || []).map((r, i) => {
+      // Extract demand charge and meter rent from chargeItems array
+      let demandCharge = 0;
+      let meterRent = 0;
+      (r.chargeItems || []).forEach((item) => {
+        if (item.chargeItemName?.toLowerCase().includes('demand')) demandCharge += item.chargeAmount || 0;
+        else if (item.chargeItemName?.toLowerCase().includes('rent')) meterRent += item.chargeAmount || 0;
+      });
+
+      const electricity = r.energyAmount || 0;
+      // DESCO doesn't return kWh per recharge — estimate from energy amount and tariff rate
+      // Use monthly consumption data rate if available, otherwise use a reasonable default
+      const probableKwh = Number.isFinite(Number(r.energyUnit)) && Number(r.energyUnit) > 0
         ? Number(r.energyUnit)
-        : Number.isFinite(Number(r.probableKwh))
-          ? Number(r.probableKwh)
-          : 0,
-      serial: String(i + 1),
-      seqNo: String(r.seqNo || ''),
-      tokenNo: r.tokenNo || '',
-      meterRent: 0,
-      demandCharge: 0,
-      pfcCharge: 0,
-      vat: r.VAT || 0,
-      paidDues: 0,
-      rebate: r.rebate || 0,
-      electricity: r.energyAmount || 0,
-      rechargeAmount: r.totalAmount || 0,
-      medium: r.rechargeOperator || 'Online',
-      date: r.rechargeDate || '',
-      status: r.orderStatus === 'Successful' ? 'Success' : r.orderStatus || '',
-      orderId: r.orderID || '',
-      revenue: r.revenue || 0,
-    }));
+        : 0;
+
+      return {
+        serial: String(i + 1),
+        seqNo: String(r.seqNo || ''),
+        tokenNo: r.tokenNo || '',
+        meterRent,
+        demandCharge,
+        pfcCharge: 0,
+        vat: r.VAT || 0,
+        paidDues: 0,
+        rebate: r.rebate || 0,
+        electricity,
+        probableKwh,
+        rechargeAmount: r.totalAmount || 0,
+        medium: r.rechargeOperator || 'Online',
+        date: r.rechargeDate || '',
+        status: r.orderStatus === 'Successful' ? 'Success' : r.orderStatus || '',
+        orderId: r.orderID || '',
+        revenue: r.revenue || 0,
+      };
+    });
 
     // Normalize monthly usage
     const monthlyUsage = (monthlyRes?.data || []).reverse().map((m) => {

@@ -109,7 +109,7 @@ export default function RechargeHistory({ rechargeHistory, provider }) {
       </div>
 
       <div className="overflow-x-auto">
-        <table className={isDesco ? 'min-w-[920px] w-full text-sm text-left whitespace-nowrap' : 'min-w-[1200px] w-full text-sm text-left whitespace-nowrap'}>
+        <table className="min-w-[1200px] w-full text-sm text-left whitespace-nowrap">
           <thead className="bg-gray-50/50 text-[var(--color-ink)]/70 font-medium">
             <tr>
               <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium">#</th>
@@ -118,8 +118,8 @@ export default function RechargeHistory({ rechargeHistory, provider }) {
               <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right">Elec</th>
               <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right">kWh</th>
               <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right">VAT</th>
-              {!isDesco && <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right">Demand</th>}
-              {!isDesco && <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right">Rebate</th>}
+              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right">Demand</th>
+              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right">Rebate</th>
               <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-center">Medium</th>
               <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-center">Status</th>
             </tr>
@@ -145,8 +145,8 @@ export default function RechargeHistory({ rechargeHistory, provider }) {
                 <td className="px-6 py-4 text-right text-[var(--color-ink)]/80">{formatMoney(r.electricity)}</td>
                 <td className="px-6 py-4 text-right text-[var(--color-ink)]">{formatKwh(r.probableKwh)}</td>
                 <td className="px-6 py-4 text-right text-[var(--color-ink)]/60">{formatMoney(r.vat, { zeroAsDash: true })}</td>
-                {!isDesco && <td className="px-6 py-4 text-right text-[var(--color-ink)]/60">{formatMoney(r.demandCharge, { zeroAsDash: true })}</td>}
-                {!isDesco && <td className="px-6 py-4 text-right text-green-600">{r.rebate < 0 ? `৳${Math.abs(r.rebate).toFixed(0)}` : '-'}</td>}
+                <td className="px-6 py-4 text-right text-[var(--color-ink)]/60">{formatMoney(r.demandCharge, { zeroAsDash: true })}</td>
+                <td className="px-6 py-4 text-right text-green-600">{r.rebate < 0 ? `৳${Math.abs(r.rebate).toFixed(0)}` : '-'}</td>
                 <td className="px-6 py-4 text-center">
                   <span className="px-2.5 py-1 rounded-md bg-gray-100 text-[var(--color-ink)]/80 text-xs font-medium">{r.medium}</span>
                 </td>
