@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-export default function MeterInput({ onSubmit, error }) {
+export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter, onRemoveMeter, onSetPrimary }) {
   const [meter, setMeter] = useState('')
   const isValid = /^\d{8,11}$/.test(meter)
 
@@ -22,6 +22,64 @@ export default function MeterInput({ onSubmit, error }) {
           <p className="text-slate-500 mt-2 text-base">Enter your prepaid meter number to view recharge history, usage analytics, and more</p>
         </div>
 
+        {/* Saved meters */}
+        {meters.length > 0 && (
+          <div className="mb-6">
+            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2.5 px-1">Saved Meters</div>
+            <div className="space-y-2">
+              {meters.map((m) => (
+                <div
+                  key={m.number}
+                  className="group flex items-center gap-3 bg-white border border-slate-200 hover:border-primary-300 rounded-xl px-4 py-3 transition-all hover:shadow-md cursor-pointer"
+                  onClick={() => onSwitchMeter(m.number)}
+                >
+                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-slate-500 group-hover:from-primary-50 group-hover:to-primary-100 group-hover:text-primary-600 transition-all">
+                    <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-800 text-sm">{m.number}</span>
+                      {m.primary && (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-600">PRIMARY</span>
+                      )}
+                    </div>
+                    {m.name && <div className="text-xs text-slate-400 truncate">{m.name}</div>}
+                  </div>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {!m.primary && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onSetPrimary(m.number) }}
+                        className="p-1.5 rounded-lg hover:bg-amber-50 text-slate-300 hover:text-amber-500 transition-colors cursor-pointer"
+                        title="Set as primary"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+                        </svg>
+                      </button>
+                    )}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onRemoveMeter(m.number) }}
+                      className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-300 hover:text-rose-500 transition-colors cursor-pointer"
+                      title="Remove meter"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 mb-2 flex items-center gap-3">
+              <div className="flex-1 h-px bg-slate-200" />
+              <span className="text-[11px] font-medium text-slate-300 uppercase">or add new</span>
+              <div className="flex-1 h-px bg-slate-200" />
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="relative">
             <input
@@ -32,7 +90,7 @@ export default function MeterInput({ onSubmit, error }) {
               value={meter}
               onChange={(e) => setMeter(e.target.value.replace(/\D/g, '').slice(0, 11))}
               className="w-full h-14 px-5 pr-14 text-lg font-medium text-slate-900 bg-white border-2 border-slate-200 rounded-2xl outline-none transition-all duration-200 placeholder:text-slate-300 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 hover:border-slate-300"
-              autoFocus
+              autoFocus={meters.length === 0}
             />
             <div className="absolute right-4 top-1/2 -translate-y-1/2">
               {meter.length > 0 && (

@@ -9,7 +9,7 @@ export default function MonthlyTable({ monthlyUsage }) {
     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100">
         <h3 className="font-bold text-slate-900 text-base">Monthly Breakdown</h3>
-        <p className="text-xs text-slate-400 mt-0.5">Detailed cost and usage per month</p>
+        <p className="text-xs text-slate-400 mt-0.5">Detailed cost and usage per month — all fields</p>
       </div>
 
       <div className="overflow-x-auto">
@@ -20,9 +20,13 @@ export default function MonthlyTable({ monthlyUsage }) {
               <th className="text-right px-4 py-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Recharge</th>
               <th className="text-right px-4 py-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Electricity</th>
               <th className="text-right px-4 py-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">kWh</th>
+              <th className="text-right px-4 py-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider hidden sm:table-cell">Rebate</th>
               <th className="text-right px-4 py-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider hidden sm:table-cell">Demand</th>
-              <th className="text-right px-4 py-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider hidden sm:table-cell">VAT</th>
-              <th className="text-right px-4 py-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider hidden md:table-cell">Total Deduction</th>
+              <th className="text-right px-4 py-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider hidden md:table-cell">Meter Rent</th>
+              <th className="text-right px-4 py-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider hidden md:table-cell">VAT</th>
+              <th className="text-right px-4 py-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider hidden lg:table-cell">PFC</th>
+              <th className="text-right px-4 py-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider hidden lg:table-cell">Dues</th>
+              <th className="text-right px-4 py-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider hidden sm:table-cell">Total Deduct</th>
               <th className="text-right px-4 py-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Balance</th>
             </tr>
           </thead>
@@ -38,9 +42,15 @@ export default function MonthlyTable({ monthlyUsage }) {
                 <td className="px-4 py-3 text-right">
                   <span className="font-semibold text-amber-600">{m.usedKwh}</span>
                 </td>
+                <td className="px-4 py-3 text-right text-emerald-600 hidden sm:table-cell">
+                  {m.rebate < 0 ? `৳${Math.abs(m.rebate).toFixed(2)}` : '-'}
+                </td>
                 <td className="px-4 py-3 text-right text-slate-500 hidden sm:table-cell">৳{m.demandCharge}</td>
-                <td className="px-4 py-3 text-right text-slate-500 hidden sm:table-cell">৳{m.vat.toFixed(2)}</td>
-                <td className="px-4 py-3 text-right text-slate-600 hidden md:table-cell">৳{m.totalUsage.toLocaleString()}</td>
+                <td className="px-4 py-3 text-right text-slate-500 hidden md:table-cell">৳{m.meterRent}</td>
+                <td className="px-4 py-3 text-right text-slate-500 hidden md:table-cell">৳{m.vat.toFixed(2)}</td>
+                <td className="px-4 py-3 text-right text-slate-500 hidden lg:table-cell">{m.pfcCharge > 0 ? `৳${m.pfcCharge}` : '-'}</td>
+                <td className="px-4 py-3 text-right text-slate-500 hidden lg:table-cell">{m.paidDues > 0 ? `৳${m.paidDues}` : '-'}</td>
+                <td className="px-4 py-3 text-right text-slate-600 hidden sm:table-cell">৳{m.totalUsage.toLocaleString()}</td>
                 <td className="px-4 py-3 text-right">
                   <span className={`font-bold ${m.endBalance >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
                     ৳{m.endBalance.toFixed(2)}
