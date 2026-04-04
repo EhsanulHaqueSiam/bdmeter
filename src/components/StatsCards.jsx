@@ -254,7 +254,7 @@ export default function StatsCards({ data, t }) {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div>
               <h3 className="text-lg font-semibold text-[var(--color-ink)] tracking-tight">{t('Balance Forecast')}</h3>
-              <p className="text-sm text-[var(--color-ink)]/50 mt-0.5">
+              <p className="text-sm text-[var(--color-ink-muted)] mt-0.5">
                 Based on {forecast.dataSource.toLowerCase()} ({forecast.dataPoints} data points)
               </p>
             </div>
@@ -339,7 +339,7 @@ export default function StatsCards({ data, t }) {
             transition={{ delay: 0.6 }}
             className="mt-5"
           >
-            <div className="flex justify-between text-xs font-medium text-[var(--color-ink)]/50 mb-2">
+            <div className="flex justify-between text-xs font-medium text-[var(--color-ink-muted)] mb-2">
               <span>৳0</span>
               <span>৳{forecast.balance.toFixed(0)}</span>
             </div>

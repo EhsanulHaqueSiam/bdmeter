@@ -11,6 +11,7 @@
   --color-surface-dim: #f0efe9; /* Subtly darker paper for cards/hover */
   
   --color-ink: #1c1b1a; /* Deep espresso black - not pure #000 */
+  --color-ink-muted: #6b6966; /* Readable muted text */
   --color-outline: #e6e4dc; /* Delicate borders */
   
   --color-nesco: #2563eb; /* Vibrant Blue */
@@ -27,7 +28,8 @@ html.dark {
   --color-surface: #242424;
   --color-surface-dim: #1e1e1e;
   --color-ink: #e8e6e1;
-  --color-outline: #333330;
+  --color-ink-muted: #9b9893;
+  --color-outline: #3d3d3a;
 }
 
 body {

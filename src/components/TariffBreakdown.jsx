@@ -49,7 +49,7 @@ export default function TariffBreakdown({ monthlyUsage, t }) {
     >
       <div className="mb-6">
         <h3 className="text-lg font-semibold text-[var(--color-ink)] tracking-tight">{t('Tariff Breakdown')}</h3>
-        <p className="text-sm text-[var(--color-ink)]/50 mt-1">
+        <p className="text-sm text-[var(--color-ink-muted)] mt-1">
           {t('Slab-wise cost for')} {latest.usedKwh} kWh ({latest.month ? `${latest.month} ${latest.year || ''}`.trim() : t('Latest month')})
         </p>
       </div>
@@ -89,7 +89,7 @@ export default function TariffBreakdown({ monthlyUsage, t }) {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-[var(--color-ink)]/50 text-left">
+            <tr className="text-[var(--color-ink-muted)] text-left">
               <th className="pb-2 font-medium">{t('Slab')}</th>
               <th className="pb-2 font-medium text-right">{t('Rate')}</th>
               <th className="pb-2 font-medium text-right">kWh</th>

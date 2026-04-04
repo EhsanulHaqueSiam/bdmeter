@@ -127,7 +127,7 @@ export default function OnboardingTour({ t }) {
           <div className="flex items-center justify-between">
             <button
               onClick={handleSkip}
-              className="px-4 py-2 text-sm font-medium text-[var(--color-ink)]/50 hover:text-[var(--color-ink)] transition-colors cursor-pointer"
+              className="px-4 py-2 text-sm font-medium text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] transition-colors cursor-pointer"
             >
               {t('Skip')}
             </button>

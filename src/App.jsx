@@ -360,14 +360,14 @@ function App() {
                   {activeProvider === 'desco' ? 'DESCO' : 'NESCO'}
                 </motion.h1>
               </AnimatePresence>
-              <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--color-ink)]/50">{t('Grid Watch')}</p>
+              <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--color-ink-muted)]">{t('Grid Watch')}</p>
             </div>
           </button>
 
           <div className="flex items-center gap-2">
             {/* Updated ago text */}
             {data && lastUpdated && (
-              <span className="hidden sm:inline text-[10px] font-medium text-[var(--color-ink)]/40 mr-1">
+              <span className="hidden sm:inline text-[10px] font-medium text-[var(--color-ink-muted)] mr-1">
                 {getUpdatedAgo()}
               </span>
             )}
@@ -517,12 +517,12 @@ function App() {
         transition={{ duration: 0.6, delay: 0.3 }}
         className="mt-auto border-t border-[var(--color-outline)] py-12 bg-[var(--color-surface)] print:hidden"
       >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs font-medium text-[var(--color-ink)]/40">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs font-medium text-[var(--color-ink-muted)]">
           <p>Data sourced directly from {activeProvider === 'desco' ? 'DESCO' : 'NESCO'}. Not an official product.</p>
           <p className="mt-2">Designed for clarity and utility.</p>
-          <p className="mt-2 text-[var(--color-ink)]/30">{t('Tip: Add to home screen for quick access to your balance')}</p>
+          <p className="mt-2 text-[var(--color-ink-muted)]">{t('Tip: Add to home screen for quick access to your balance')}</p>
           {data && lastUpdated && (
-            <p className="mt-2 text-[var(--color-ink)]/30">Updated {getUpdatedAgo()}</p>
+            <p className="mt-2 text-[var(--color-ink-muted)]">Updated {getUpdatedAgo()}</p>
           )}
         </div>
       </motion.footer>
@@ -551,7 +551,7 @@ function LoadingSkeleton({ provider, t }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="font-medium text-sm text-[var(--color-ink)]/50 tracking-wide"
+          className="font-medium text-sm text-[var(--color-ink-muted)] tracking-wide"
         >
           {t('Retrieving grid data...')}
         </motion.span>

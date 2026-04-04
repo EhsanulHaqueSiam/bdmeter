@@ -123,7 +123,7 @@ export default function MeterComparison({ meters, currentMeter, currentProvider,
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="text-[var(--color-ink)]/50 text-left border-b border-[var(--color-outline)]">
+                        <tr className="text-[var(--color-ink-muted)] text-left border-b border-[var(--color-outline)]">
                           <th className="pb-3 font-medium">{t('Meter')}</th>
                           <th className="pb-3 font-medium text-right">{t('Balance')}</th>
                           <th className="pb-3 font-medium text-right">kWh</th>
@@ -147,11 +147,11 @@ export default function MeterComparison({ meters, currentMeter, currentProvider,
                                 }`}>
                                   {r.meter.provider || 'nesco'}
                                 </span>
-                                {r.name && <span className="text-xs text-[var(--color-ink)]/50 truncate max-w-[120px]">{r.name}</span>}
+                                {r.name && <span className="text-xs text-[var(--color-ink-muted)] truncate max-w-[120px]">{r.name}</span>}
                               </div>
                             </td>
                             {r.error ? (
-                              <td colSpan={4} className="py-3 text-center text-[var(--color-ink)]/50 text-xs">{t('Failed')}</td>
+                              <td colSpan={4} className="py-3 text-center text-[var(--color-ink-muted)] text-xs">{t('Failed')}</td>
                             ) : (
                               <>
                                 <td className="py-3 text-right font-medium text-[var(--color-ink)]">&#2547;{r.balance.toFixed(2)}</td>

@@ -65,7 +65,7 @@ export default function QRCodeButton({ meterNo, provider, t }) {
                   className="w-[200px] h-[200px]"
                 />
               </div>
-              <p className="text-xs text-[var(--color-ink)]/50 text-center mt-3 break-all font-mono">
+              <p className="text-xs text-[var(--color-ink-muted)] text-center mt-3 break-all font-mono">
                 {shareUrl}
               </p>
             </motion.div>

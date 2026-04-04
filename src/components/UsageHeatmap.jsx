@@ -86,7 +86,7 @@ export default function UsageHeatmap({ dailyConsumption, t }) {
     >
       <div className="mb-6">
         <h3 className="text-lg font-semibold text-[var(--color-ink)] tracking-tight">{t('Usage Heatmap')}</h3>
-        <p className="text-sm text-[var(--color-ink)]/50 mt-1">
+        <p className="text-sm text-[var(--color-ink-muted)] mt-1">
           {t('Daily consumption intensity')} ({recent.length} {t('days')})
         </p>
       </div>
@@ -96,7 +96,7 @@ export default function UsageHeatmap({ dailyConsumption, t }) {
           {/* Day labels */}
           <div className="flex flex-col gap-1 mr-1 pt-0">
             {DAY_LABELS.map((label, i) => (
-              <div key={i} className="h-[14px] flex items-center text-[10px] text-[var(--color-ink)]/40 font-medium leading-none">
+              <div key={i} className="h-[14px] flex items-center text-[10px] text-[var(--color-ink-muted)] font-medium leading-none">
                 {i % 2 === 1 ? label : ''}
               </div>
             ))}
@@ -129,7 +129,7 @@ export default function UsageHeatmap({ dailyConsumption, t }) {
 
       {/* Legend */}
       <div className="flex items-center gap-2 mt-4">
-        <span className="text-[10px] text-[var(--color-ink)]/40">{t('Less')}</span>
+        <span className="text-[10px] text-[var(--color-ink-muted)]">{t('Less')}</span>
         {['var(--color-surface-dim)', '#d1fae5', '#6ee7b7', '#34d399', '#10b981', '#059669'].map((color, i) => (
           <div
             key={i}
@@ -137,7 +137,7 @@ export default function UsageHeatmap({ dailyConsumption, t }) {
             style={{ backgroundColor: color }}
           />
         ))}
-        <span className="text-[10px] text-[var(--color-ink)]/40">{t('More')}</span>
+        <span className="text-[10px] text-[var(--color-ink-muted)]">{t('More')}</span>
       </div>
 
       {/* Tooltip display */}

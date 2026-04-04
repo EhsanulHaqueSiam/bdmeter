@@ -199,7 +199,7 @@ export default function RechargeHistory({ rechargeHistory, provider, t }) {
             <div className="px-6 py-4 flex flex-wrap items-center gap-3">
               {/* Search input */}
               <div className="relative flex-1 min-w-[200px]">
-                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-ink)]/30" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-ink-muted)]" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                 </svg>
                 <input
@@ -207,14 +207,14 @@ export default function RechargeHistory({ rechargeHistory, provider, t }) {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder={t('Search token or date...')}
-                  className="w-full h-9 pl-9 pr-3 text-sm text-[var(--color-ink)] bg-[var(--color-surface-dim)]/50 border border-[var(--color-outline)] rounded-lg outline-none focus:ring-2 focus:ring-[var(--color-nesco)]/20 transition-all placeholder:text-[var(--color-ink)]/30"
+                  className="w-full h-9 pl-9 pr-3 text-sm text-[var(--color-ink)] bg-[var(--color-surface-dim)]/50 border border-[var(--color-outline)] rounded-lg outline-none focus:ring-2 focus:ring-[var(--color-nesco)]/20 transition-all placeholder:text-[var(--color-ink-muted)]"
                   aria-label={t('Search token or date...')}
                 />
               </div>
 
               {/* Status filter */}
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-medium text-[var(--color-ink)]/40 uppercase">Status:</span>
+                <span className="text-[10px] font-medium text-[var(--color-ink-muted)] uppercase">Status:</span>
                 {(isDesco
                   ? [{ key: 'all', label: t('All') }, { key: 'successful', label: t('Successful') }]
                   : [{ key: 'all', label: t('All') }, { key: 'auto', label: t('Auto') }, { key: 'pin', label: t('PIN') }]
@@ -235,7 +235,7 @@ export default function RechargeHistory({ rechargeHistory, provider, t }) {
 
               {/* Amount filter */}
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-medium text-[var(--color-ink)]/40 uppercase">{t('Amount')}:</span>
+                <span className="text-[10px] font-medium text-[var(--color-ink-muted)] uppercase">{t('Amount')}:</span>
                 {[
                   { key: 'all', label: t('All') },
                   { key: '<500', label: '<500' },
@@ -318,7 +318,7 @@ export default function RechargeHistory({ rechargeHistory, provider, t }) {
       </div>
 
       {filtered.length === 0 && (
-        <div className="py-8 text-center text-sm text-[var(--color-ink)]/50">
+        <div className="py-8 text-center text-sm text-[var(--color-ink-muted)]">
           No matching transactions found
         </div>
       )}

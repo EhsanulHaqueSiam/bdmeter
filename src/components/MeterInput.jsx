@@ -59,7 +59,7 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
                 className={`relative px-8 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
                   provider === p.key
                     ? 'bg-[var(--color-surface)] text-[var(--color-ink)] shadow-sm border border-[var(--color-outline)]'
-                    : 'text-[var(--color-ink)]/50 hover:text-[var(--color-ink)] border border-transparent'
+                    : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] border border-transparent'
                 }`}
               >
                 {provider === p.key && (
@@ -93,7 +93,7 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
               placeholder={provider === 'desco' ? 'Account (8-9) or Meter (11-12)' : 'Account (8) or Meter (11)'}
               value={meter}
               onChange={(e) => setMeter(e.target.value.replace(/\D/g, '').slice(0, maxLen))}
-              className="w-full h-16 md:h-20 px-6 font-mono text-xl md:text-2xl font-semibold text-[var(--color-ink)] bg-transparent outline-none placeholder:text-[var(--color-ink)]/30 placeholder:font-sans placeholder:font-medium placeholder:text-base md:placeholder:text-lg"
+              className="w-full h-16 md:h-20 px-6 font-mono text-xl md:text-2xl font-semibold text-[var(--color-ink)] bg-transparent outline-none placeholder:text-[var(--color-ink-muted)] placeholder:font-sans placeholder:font-medium placeholder:text-base md:placeholder:text-lg"
               autoFocus={meters.length === 0}
               aria-label={t('Submit meter number')}
             />
@@ -106,7 +106,7 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
               className={`absolute right-3 w-12 h-12 md:w-14 md:h-14 flex items-center justify-center rounded-xl transition-all duration-300 ${
                 isValid
                   ? (provider === 'desco' ? 'bg-[var(--color-desco)] text-white hover:opacity-90' : 'bg-[var(--color-nesco)] text-white hover:opacity-90')
-                  : 'bg-[var(--color-surface-dim)] text-[var(--color-ink)]/30 cursor-not-allowed'
+                  : 'bg-[var(--color-surface-dim)] text-[var(--color-ink-muted)] cursor-not-allowed'
               }`}
             >
               <svg className="w-6 h-6 md:w-7 md:h-7" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
@@ -123,7 +123,7 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
                   transition={{ duration: 0.2 }}
                   className="absolute -bottom-8 left-6 pointer-events-none flex items-center gap-2"
                 >
-                  <span className={`text-xs font-mono font-medium ${isValid ? 'text-[var(--color-success)]' : 'text-[var(--color-ink)]/50'}`}>
+                  <span className={`text-xs font-mono font-medium ${isValid ? 'text-[var(--color-success)]' : 'text-[var(--color-ink-muted)]'}`}>
                     {meter.length} digits {isValid ? '✓ Valid' : '× Invalid length'}
                   </span>
                 </motion.div>
@@ -158,13 +158,13 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
               className="pt-8 max-w-lg mx-auto"
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-ink)]/50">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
                   {t('Recent Searches')}
                 </h3>
                 {onClearHistory && (
                   <button
                     onClick={onClearHistory}
-                    className="text-xs font-medium text-[var(--color-ink)]/40 hover:text-[var(--color-danger)] transition-colors cursor-pointer"
+                    className="text-xs font-medium text-[var(--color-ink-muted)] hover:text-[var(--color-danger)] transition-colors cursor-pointer"
                   >
                     {t('Clear')}
                   </button>
@@ -198,7 +198,7 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
               className="pt-16 max-w-3xl mx-auto"
             >
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-ink)]/50">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
                   {t('Recent Accounts')}
                 </h3>
               </div>
@@ -234,7 +234,7 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
                               setNicknameValue(m.nickname || '')
                               setTimeout(() => nicknameInputRef.current?.focus(), 50)
                             }}
-                            className="text-[var(--color-ink)]/40 hover:text-[var(--color-nesco)] transition-colors p-1"
+                            className="text-[var(--color-ink-muted)] hover:text-[var(--color-nesco)] transition-colors p-1"
                             title={t('Edit nickname')}
                           >
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z" /></svg>
@@ -244,7 +244,7 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
                               whileHover={{ scale: 1.2 }}
                               whileTap={{ scale: 0.9 }}
                               onClick={(e) => { e.stopPropagation(); onSetPrimary(m.number, m.provider || 'nesco') }}
-                              className="text-[var(--color-ink)]/40 hover:text-[var(--color-warning)] transition-colors p-1"
+                              className="text-[var(--color-ink-muted)] hover:text-[var(--color-warning)] transition-colors p-1"
                               title={t('Set as Default')}
                             >
                               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
@@ -254,7 +254,7 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
                             whileHover={{ scale: 1.2 }}
                             whileTap={{ scale: 0.9 }}
                             onClick={(e) => { e.stopPropagation(); onRemoveMeter(m.number, m.provider || 'nesco') }}
-                            className="text-[var(--color-ink)]/40 hover:text-[var(--color-danger)] transition-colors p-1"
+                            className="text-[var(--color-ink-muted)] hover:text-[var(--color-danger)] transition-colors p-1"
                             title={t('Remove')}
                           >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -283,7 +283,7 @@ export default function MeterInput({ onSubmit, error, meters = [], onSwitchMeter
                                 setEditingNickname(null)
                               }}
                               placeholder={t('Set nickname')}
-                              className="w-full px-2 py-1 text-sm font-medium rounded-lg border border-[var(--color-outline)] bg-[var(--color-surface-dim)] text-[var(--color-ink)] outline-none focus:ring-2 focus:ring-[var(--color-nesco)]/20 placeholder:text-[var(--color-ink)]/30"
+                              className="w-full px-2 py-1 text-sm font-medium rounded-lg border border-[var(--color-outline)] bg-[var(--color-surface-dim)] text-[var(--color-ink)] outline-none focus:ring-2 focus:ring-[var(--color-nesco)]/20 placeholder:text-[var(--color-ink-muted)]"
                               maxLength={30}
                             />
                           </div>

@@ -60,13 +60,13 @@ export default function RechargeCalculator({ data, t }) {
       <h3 className="text-lg font-semibold text-[var(--color-ink)] tracking-tight mb-1">
         {t('Recharge Calculator')}
       </h3>
-      <p className="text-sm text-[var(--color-ink)]/50 mb-6">
+      <p className="text-sm text-[var(--color-ink-muted)] mb-6">
         {t('If I recharge')}...
       </p>
 
       <div className="flex items-center gap-4 mb-6">
         <div className="relative flex-1 max-w-xs">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold text-[var(--color-ink)]/50">৳</span>
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold text-[var(--color-ink-muted)]">৳</span>
           <input
             type="text"
             inputMode="numeric"
@@ -74,7 +74,7 @@ export default function RechargeCalculator({ data, t }) {
             value={amount}
             onChange={(e) => setAmount(e.target.value.replace(/[^\d]/g, ''))}
             placeholder="500"
-            className="w-full h-14 pl-10 pr-4 font-mono text-xl font-semibold text-[var(--color-ink)] bg-[var(--color-surface-dim)]/50 border border-[var(--color-outline)] rounded-xl outline-none focus:ring-2 focus:ring-[var(--color-nesco)]/20 focus:border-[var(--color-nesco)] transition-all placeholder:text-[var(--color-ink)]/30"
+            className="w-full h-14 pl-10 pr-4 font-mono text-xl font-semibold text-[var(--color-ink)] bg-[var(--color-surface-dim)]/50 border border-[var(--color-outline)] rounded-xl outline-none focus:ring-2 focus:ring-[var(--color-nesco)]/20 focus:border-[var(--color-nesco)] transition-all placeholder:text-[var(--color-ink-muted)]"
           />
         </div>
       </div>
@@ -92,7 +92,7 @@ export default function RechargeCalculator({ data, t }) {
               <div className="text-2xl font-semibold text-[var(--color-ink)] tracking-tight">
                 {estimatedKwh.toFixed(1)} kWh
               </div>
-              <div className="text-xs text-[var(--color-ink)]/40 mt-1">
+              <div className="text-xs text-[var(--color-ink-muted)] mt-1">
                 @ ৳{costPerKwh.toFixed(2)}/kWh
               </div>
             </div>
@@ -103,7 +103,7 @@ export default function RechargeCalculator({ data, t }) {
               <div className="text-2xl font-semibold text-[var(--color-ink)] tracking-tight">
                 ~{Math.floor(estimatedDays)} days
               </div>
-              <div className="text-xs text-[var(--color-ink)]/40 mt-1">
+              <div className="text-xs text-[var(--color-ink-muted)] mt-1">
                 @ ৳{dailyTaka.toFixed(1)}/day burn
               </div>
             </div>

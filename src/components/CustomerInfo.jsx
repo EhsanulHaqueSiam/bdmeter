@@ -112,7 +112,7 @@ export default function CustomerInfo({ data, meterNo, onReset, isSaved, onSave, 
         >
           <h3 className="text-lg font-semibold text-[var(--color-ink)] tracking-tight">
             {customerInfo?.name || 'Customer'}
-            {nickname && <span className="text-[var(--color-ink)]/50 font-normal"> ({nickname})</span>}
+            {nickname && <span className="text-[var(--color-ink-muted)] font-normal"> ({nickname})</span>}
           </h3>
           <p className="text-sm text-[var(--color-ink)]/70 mt-1">
             {customerInfo?.address || 'Nesco Prepaid Customer'}
@@ -161,7 +161,7 @@ export default function CustomerInfo({ data, meterNo, onReset, isSaved, onSave, 
             transition={{ duration: 0.3, delay: 0.05 * i }}
             className="p-5 bg-[var(--color-surface)]"
           >
-            <div className="text-sm text-[var(--color-ink)]/50 mb-1">{f.label}</div>
+            <div className="text-sm text-[var(--color-ink-muted)] mb-1">{f.label}</div>
             <div className="text-base font-semibold text-[var(--color-ink)] break-words">{f.value}</div>
           </motion.div>
         ))}

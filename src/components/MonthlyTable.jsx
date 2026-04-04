@@ -40,7 +40,7 @@ export default function MonthlyTable({ monthlyUsage, provider, t }) {
 
         <div className="overflow-x-auto">
           <table className="min-w-[760px] w-full text-sm text-left whitespace-nowrap">
-            <thead className="bg-[var(--color-surface-dim)]/50 text-[var(--color-ink)]/50 font-medium">
+            <thead className="bg-[var(--color-surface-dim)]/50 text-[var(--color-ink-muted)] font-medium">
               <tr>
                 <th className="px-4 py-3 border-b border-[var(--color-outline)] font-medium">Month</th>
                 <th className="px-4 py-3 border-b border-[var(--color-outline)] font-medium text-right">Elec</th>
@@ -96,7 +96,7 @@ export default function MonthlyTable({ monthlyUsage, provider, t }) {
 
       <div className="overflow-x-auto">
         <table className="min-w-[1200px] w-full text-sm text-left whitespace-nowrap">
-          <thead className="bg-[var(--color-surface-dim)]/50 text-[var(--color-ink)]/50 font-medium">
+          <thead className="bg-[var(--color-surface-dim)]/50 text-[var(--color-ink-muted)] font-medium">
             <tr>
               <th className="px-3 py-3 border-b border-[var(--color-outline)] font-medium">Month</th>
               <th className="px-3 py-3 border-b border-[var(--color-outline)] font-medium text-right">Recharge</th>
@@ -123,7 +123,7 @@ export default function MonthlyTable({ monthlyUsage, provider, t }) {
               >
                 <td className="px-3 py-3 text-[var(--color-ink)]">
                   <span className="font-medium">{MONTH_MAP[m.month] || m.month || '-'}</span>
-                  <span className="text-[var(--color-ink)]/50 ml-1">{m.year ? String(m.year).slice(-2) : '--'}</span>
+                  <span className="text-[var(--color-ink-muted)] ml-1">{m.year ? String(m.year).slice(-2) : '--'}</span>
                 </td>
                 <td className="px-3 py-3 text-right font-medium text-[var(--color-ink)]">{formatMoney(m.totalRecharge, { zeroAsDash: true })}</td>
                 <td className="px-3 py-3 text-right text-[var(--color-ink)]/60">{formatMoney(m.usedElectricity)}</td>
@@ -133,11 +133,11 @@ export default function MonthlyTable({ monthlyUsage, provider, t }) {
                 <td className="px-3 py-3 text-right text-green-600">
                   {m.rebate < 0 ? `৳${Math.abs(m.rebate).toFixed(2)}` : '-'}
                 </td>
-                <td className="px-3 py-3 text-right text-[var(--color-ink)]/50">{formatMoney(m.demandCharge, { zeroAsDash: true })}</td>
-                <td className="px-3 py-3 text-right text-[var(--color-ink)]/50">{formatMoney(m.meterRent, { zeroAsDash: true })}</td>
-                <td className="px-3 py-3 text-right text-[var(--color-ink)]/50">{formatMoney(m.vat, { decimals: 2, zeroAsDash: true })}</td>
-                <td className="px-3 py-3 text-right text-[var(--color-ink)]/50">{m.pfcCharge > 0 ? `৳${m.pfcCharge}` : '-'}</td>
-                <td className="px-3 py-3 text-right text-[var(--color-ink)]/50">{m.paidDues > 0 ? `৳${m.paidDues}` : '-'}</td>
+                <td className="px-3 py-3 text-right text-[var(--color-ink-muted)]">{formatMoney(m.demandCharge, { zeroAsDash: true })}</td>
+                <td className="px-3 py-3 text-right text-[var(--color-ink-muted)]">{formatMoney(m.meterRent, { zeroAsDash: true })}</td>
+                <td className="px-3 py-3 text-right text-[var(--color-ink-muted)]">{formatMoney(m.vat, { decimals: 2, zeroAsDash: true })}</td>
+                <td className="px-3 py-3 text-right text-[var(--color-ink-muted)]">{m.pfcCharge > 0 ? `৳${m.pfcCharge}` : '-'}</td>
+                <td className="px-3 py-3 text-right text-[var(--color-ink-muted)]">{m.paidDues > 0 ? `৳${m.paidDues}` : '-'}</td>
                 <td className="px-3 py-3 text-right text-[var(--color-ink)]/70">{formatMoney(m.totalUsage, { zeroAsDash: true })}</td>
                 <td className="px-3 py-3 text-right">
                   <span className={`px-2 py-1 rounded-md text-xs font-medium ${m.endBalance >= 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>

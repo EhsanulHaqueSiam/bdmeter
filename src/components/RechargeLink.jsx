@@ -56,7 +56,7 @@ export default function RechargeLink({ meterNo, t }) {
               className="w-full px-4 py-3 text-left text-sm font-medium text-[var(--color-ink)] hover:bg-[var(--color-surface-dim)] transition-colors cursor-pointer flex items-center justify-between border-b border-[var(--color-outline)]"
             >
               <span className="font-mono text-xs">{meterNo}</span>
-              <span className="text-[10px] font-medium text-[var(--color-ink)]/50">
+              <span className="text-[10px] font-medium text-[var(--color-ink-muted)]">
                 {copied ? t('Copied') : t('Copy')}
               </span>
             </button>
@@ -72,7 +72,7 @@ export default function RechargeLink({ meterNo, t }) {
               >
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
                 {p.name}
-                <svg className="w-3 h-3 ml-auto text-[var(--color-ink)]/30" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <svg className="w-3 h-3 ml-auto text-[var(--color-ink-muted)]" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
                 </svg>
               </a>
