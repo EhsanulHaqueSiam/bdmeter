@@ -2,13 +2,14 @@ import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Legend,
 } from 'recharts'
+import { motion } from 'framer-motion'
 
 const MEDIUM_COLORS = {
-  BKASH: '#f43f5e', // rose-500
-  NAGAD: '#f59e0b', // amber-500
-  ROCKET: '#8b5cf6', // violet-500
-  UPAY: '#10b981', // emerald-500
-  Nesco: '#3b82f6', // blue-500
+  BKASH: '#f43f5e',
+  NAGAD: '#f59e0b',
+  ROCKET: '#8b5cf6',
+  UPAY: '#10b981',
+  Nesco: '#3b82f6',
 }
 
 const STATUS_COLORS = { Success: '#10b981', Failed: '#ef4444' }
@@ -17,12 +18,17 @@ function CustomTooltip({ active, payload }) {
   if (!active || !payload?.length) return null
   const d = payload[0]
   return (
-    <div className="bg-white rounded-lg border border-[var(--color-outline)] shadow-sm p-3 text-sm">
+    <motion.div
+      initial={{ opacity: 0, y: 5 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.15 }}
+      className="bg-white rounded-lg border border-[var(--color-outline)] shadow-sm p-3 text-sm"
+    >
       <div className="flex items-center gap-3 font-medium text-[var(--color-ink)]">
         <span className="w-2.5 h-2.5 rounded-full" style={{ background: d.payload.fill || d.color }} />
         <span>{d.name || d.payload.name}: {d.value}</span>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -41,7 +47,6 @@ function PieLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent }) {
 
 export default function RechargeInsights({ rechargeHistory, provider }) {
   const isNesco = provider !== 'desco'
-  // Payment method breakdown
   const mediumCounts = {}
   const mediumAmounts = {}
   let successCount = 0
@@ -63,7 +68,6 @@ export default function RechargeInsights({ rechargeHistory, provider }) {
     { name: 'Manual PIN', value: failedCount },
   ]
 
-  // Recharge amounts over time (group by month)
   const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
   const monthlyRecharges = {}
   rechargeHistory.forEach((r) => {
@@ -91,8 +95,19 @@ export default function RechargeInsights({ rechargeHistory, provider }) {
   const avgRecharge = totalRecharged / rechargeHistory.length
   const maxRecharge = Math.max(...rechargeHistory.map(r => r.rechargeAmount))
 
+  const summaryCards = [
+    { label: 'Total Recharged', value: `৳${totalRecharged.toLocaleString()}` },
+    { label: 'Avg per Recharge', value: `৳${avgRecharge.toFixed(0)}` },
+    { label: 'Largest Recharge', value: `৳${maxRecharge.toLocaleString()}` },
+  ]
+
   return (
-    <div className="bg-white rounded-2xl border border-[var(--color-outline)] shadow-sm p-6">
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className="bg-white rounded-2xl border border-[var(--color-outline)] shadow-sm p-6"
+    >
       <div className="mb-8">
         <h3 className="text-lg font-semibold text-[var(--color-ink)] tracking-tight">Recharge Insights</h3>
         <p className="text-sm text-[var(--color-ink)]/70 mt-1">
@@ -101,22 +116,27 @@ export default function RechargeInsights({ rechargeHistory, provider }) {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
-        <div className="bg-gray-50/50 rounded-xl border border-[var(--color-outline)] p-5">
-          <div className="text-sm text-[var(--color-ink)]/70 mb-1">Total Recharged</div>
-          <div className="text-2xl font-semibold text-[var(--color-ink)] tracking-tight">৳{totalRecharged.toLocaleString()}</div>
-        </div>
-        <div className="bg-gray-50/50 rounded-xl border border-[var(--color-outline)] p-5">
-          <div className="text-sm text-[var(--color-ink)]/70 mb-1">Avg per Recharge</div>
-          <div className="text-2xl font-semibold text-[var(--color-ink)] tracking-tight">৳{avgRecharge.toFixed(0)}</div>
-        </div>
-        <div className="bg-gray-50/50 rounded-xl border border-[var(--color-outline)] p-5">
-          <div className="text-sm text-[var(--color-ink)]/70 mb-1">Largest Recharge</div>
-          <div className="text-2xl font-semibold text-[var(--color-ink)] tracking-tight">৳{maxRecharge.toLocaleString()}</div>
-        </div>
+        {summaryCards.map((card, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: i * 0.08 }}
+            whileHover={{ y: -2 }}
+            className="bg-gray-50/50 rounded-xl border border-[var(--color-outline)] p-5"
+          >
+            <div className="text-sm text-[var(--color-ink)]/70 mb-1">{card.label}</div>
+            <div className="text-2xl font-semibold text-[var(--color-ink)] tracking-tight">{card.value}</div>
+          </motion.div>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
           <h4 className="text-sm font-medium text-[var(--color-ink)] border-b border-[var(--color-outline)] pb-2 mb-4">Payment Methods</h4>
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
@@ -146,9 +166,13 @@ export default function RechargeInsights({ rechargeHistory, provider }) {
               </PieChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </motion.div>
 
-        <div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+        >
           {isNesco ? (
             <>
               <h4 className="text-sm font-medium text-[var(--color-ink)] border-b border-[var(--color-outline)] pb-2 mb-4">Remote Recharge</h4>
@@ -188,9 +212,13 @@ export default function RechargeInsights({ rechargeHistory, provider }) {
               </div>
             </>
           )}
-        </div>
+        </motion.div>
 
-        <div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+        >
           <h4 className="text-sm font-medium text-[var(--color-ink)] border-b border-[var(--color-outline)] pb-2 mb-4">Frequency</h4>
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
@@ -215,8 +243,8 @@ export default function RechargeInsights({ rechargeHistory, provider }) {
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   )
 }

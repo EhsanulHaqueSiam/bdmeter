@@ -44,9 +44,6 @@ Once installed, the app opens in its own window without browser UI, and works of
 ### Landing (Mobile)
 ![Landing mobile](./screenshots/landing-mobile.png)
 
-### DESCO Input State
-![DESCO input state](./screenshots/input-desco-desktop.png)
-
 ### Dashboard (Customer Info, Stats & Charts)
 ![Dashboard top](./screenshots/dashboard-top.png)
 

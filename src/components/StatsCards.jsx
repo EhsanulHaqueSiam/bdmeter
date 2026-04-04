@@ -1,3 +1,5 @@
+import { motion } from 'framer-motion'
+
 export default function StatsCards({ data }) {
   const { rechargeHistory, monthlyUsage, customerInfo } = data
 
@@ -17,7 +19,6 @@ export default function StatsCards({ data }) {
     ? latestMonth.usedElectricity / latestMonth.usedKwh
     : 0
 
-  // Month-over-month changes
   const kwhChange = latestMonth && prevMonth && prevMonth.usedKwh > 0
     ? ((latestMonth.usedKwh - prevMonth.usedKwh) / prevMonth.usedKwh * 100)
     : null
@@ -55,39 +56,63 @@ export default function StatsCards({ data }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
       {cards.map((card, i) => (
-        <div key={i} className="bg-white rounded-2xl border border-[var(--color-outline)] shadow-sm p-6 flex flex-col justify-between">
+        <motion.div
+          key={i}
+          initial={{ opacity: 0, y: 20, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.45, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] }}
+          whileHover={{ y: -4, boxShadow: '0 10px 30px -8px rgba(0,0,0,0.08)' }}
+          className="bg-white rounded-2xl border border-[var(--color-outline)] shadow-sm p-6 flex flex-col justify-between"
+        >
           <div className="flex items-start justify-between mb-8">
             <div className="text-sm font-medium text-[var(--color-ink)]/70">
               {card.label}
             </div>
-            
+
             <div className="flex flex-col items-end gap-2">
               {card.badge && (
-                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${
-                  card.badge === 'Success' 
-                    ? 'bg-green-50 text-green-700 border-green-200' 
-                    : 'bg-amber-50 text-amber-700 border-amber-200'
-                }`}>
+                <motion.span
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.3 + i * 0.08 }}
+                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${
+                    card.badge === 'Success'
+                      ? 'bg-green-50 text-green-700 border-green-200'
+                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                  }`}
+                >
                   {card.badge === 'Success' ? 'Auto' : 'PIN Req'}
-                </span>
+                </motion.span>
               )}
               {card.change !== undefined && card.change !== null && (
-                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${
-                  card.change <= 0 
-                    ? 'bg-green-50 text-green-700 border-green-200' 
-                    : 'bg-red-50 text-red-700 border-red-200'
-                }`}>
+                <motion.span
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.3 + i * 0.08 }}
+                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${
+                    card.change <= 0
+                      ? 'bg-green-50 text-green-700 border-green-200'
+                      : 'bg-red-50 text-red-700 border-red-200'
+                  }`}
+                >
                   {card.change <= 0 ? '↓' : '↑'} {Math.abs(card.change).toFixed(0)}%
-                </span>
+                </motion.span>
               )}
             </div>
           </div>
-          
+
           <div>
-            <div className="text-3xl font-semibold text-[var(--color-ink)] mb-1 tracking-tight">{card.value}</div>
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4, delay: 0.15 + i * 0.08 }}
+              className="text-3xl font-semibold text-[var(--color-ink)] mb-1 tracking-tight"
+            >
+              {card.value}
+            </motion.div>
             <div className="text-sm text-[var(--color-ink)]/70">{card.sub}</div>
           </div>
-        </div>
+        </motion.div>
       ))}
     </div>
   )

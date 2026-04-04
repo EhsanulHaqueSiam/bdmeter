@@ -1,3 +1,5 @@
+import { motion } from 'framer-motion'
+
 const MONTH_MAP = {
   January: 'Jan', February: 'Feb', March: 'Mar', April: 'Apr',
   May: 'May', June: 'Jun', July: 'Jul', August: 'Aug',
@@ -25,7 +27,12 @@ export default function MonthlyTable({ monthlyUsage, provider }) {
 
   if (isDesco) {
     return (
-      <div className="bg-white rounded-2xl border border-[var(--color-outline)] shadow-sm overflow-hidden">
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        className="bg-white rounded-2xl border border-[var(--color-outline)] shadow-sm overflow-hidden"
+      >
         <div className="px-6 py-6 border-b border-[var(--color-outline)]">
           <h3 className="text-lg font-semibold text-[var(--color-ink)] tracking-tight">Monthly Breakdown</h3>
           <p className="text-sm text-[var(--color-ink)]/70 mt-1">DESCO monthly consumption summary</p>
@@ -44,7 +51,13 @@ export default function MonthlyTable({ monthlyUsage, provider }) {
             </thead>
             <tbody className="divide-y divide-[var(--color-outline)]">
               {monthlyUsage.map((m, i) => (
-                <tr key={i} className="hover:bg-gray-50/50 transition-colors">
+                <motion.tr
+                  key={i}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: Math.min(i * 0.04, 0.4) }}
+                  className="hover:bg-gray-50/50 transition-colors"
+                >
                   <td className="px-4 py-3 text-gray-900 font-medium">{formatMonthLabel(m)}</td>
                   <td className="px-4 py-3 text-right text-gray-700">{formatMoney(m.usedElectricity)}</td>
                   <td className="px-4 py-3 text-right">
@@ -60,17 +73,22 @@ export default function MonthlyTable({ monthlyUsage, provider }) {
                       ? `৳${(Number(m.usedElectricity) / Number(m.usedKwh)).toFixed(2)}`
                       : '-'}
                   </td>
-                </tr>
+                </motion.tr>
               ))}
             </tbody>
           </table>
         </div>
-      </div>
+      </motion.div>
     )
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-[var(--color-outline)] shadow-sm overflow-hidden">
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className="bg-white rounded-2xl border border-[var(--color-outline)] shadow-sm overflow-hidden"
+    >
       <div className="px-6 py-6 border-b border-[var(--color-outline)]">
         <h3 className="text-lg font-semibold text-[var(--color-ink)] tracking-tight">Monthly Breakdown</h3>
         <p className="text-sm text-[var(--color-ink)]/70 mt-1">Cost and usage per month</p>
@@ -96,7 +114,13 @@ export default function MonthlyTable({ monthlyUsage, provider }) {
           </thead>
           <tbody className="divide-y divide-[var(--color-outline)]">
             {monthlyUsage.map((m, i) => (
-              <tr key={i} className="hover:bg-gray-50/50 transition-colors">
+              <motion.tr
+                key={i}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: Math.min(i * 0.04, 0.4) }}
+                className="hover:bg-gray-50/50 transition-colors"
+              >
                 <td className="px-3 py-3 text-gray-900">
                   <span className="font-medium">{MONTH_MAP[m.month] || m.month || '-'}</span>
                   <span className="text-gray-500 ml-1">{m.year ? String(m.year).slice(-2) : '--'}</span>
@@ -120,11 +144,11 @@ export default function MonthlyTable({ monthlyUsage, provider }) {
                     {formatMoney(m.endBalance, { decimals: 2 })}
                   </span>
                 </td>
-              </tr>
+              </motion.tr>
             ))}
           </tbody>
         </table>
       </div>
-    </div>
+    </motion.div>
   )
 }

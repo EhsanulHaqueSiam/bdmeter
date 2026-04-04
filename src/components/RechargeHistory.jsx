@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 function CopyButton({ text }) {
   const [status, setStatus] = useState('idle')
@@ -28,13 +29,25 @@ function CopyButton({ text }) {
   }
 
   return (
-    <button
+    <motion.button
       onClick={copyText}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.92 }}
       className="ml-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-[var(--color-outline)] bg-white hover:bg-gray-50 text-[var(--color-ink)] text-xs font-medium transition-colors cursor-pointer"
       title="Copy Token"
     >
-      {status === 'copied' ? 'Copied' : status === 'failed' ? 'Failed' : 'Copy'}
-    </button>
+      <AnimatePresence mode="wait">
+        <motion.span
+          key={status}
+          initial={{ opacity: 0, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -5 }}
+          transition={{ duration: 0.15 }}
+        >
+          {status === 'copied' ? 'Copied' : status === 'failed' ? 'Failed' : 'Copy'}
+        </motion.span>
+      </AnimatePresence>
+    </motion.button>
   )
 }
 
@@ -61,24 +74,38 @@ export default function RechargeHistory({ rechargeHistory, provider }) {
   const lastIsSuccess = ['Success', 'Successful'].includes(rechargeHistory[0]?.status)
 
   return (
-    <div className="bg-white rounded-2xl border border-[var(--color-outline)] shadow-sm overflow-hidden">
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className="bg-white rounded-2xl border border-[var(--color-outline)] shadow-sm overflow-hidden"
+    >
       <div className="px-6 py-6 border-b border-[var(--color-outline)] flex items-end justify-between">
         <div>
           <h3 className="text-lg font-semibold text-[var(--color-ink)] tracking-tight">History</h3>
           <p className="text-sm text-[var(--color-ink)]/70 mt-1">{rechargeHistory.length} Transactions</p>
         </div>
-        <div className="flex items-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2 }}
+          className="flex items-center"
+        >
           <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${
             lastIsSuccess
               ? 'bg-green-50 text-green-700 border-green-200'
               : 'bg-amber-50 text-amber-700 border-amber-200'
           }`}>
-            <span className={`w-2 h-2 rounded-full ${
-              lastIsSuccess ? 'bg-green-500' : 'bg-amber-500'
-            }`} />
+            <motion.span
+              animate={{ scale: [1, 1.3, 1] }}
+              transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+              className={`w-2 h-2 rounded-full ${
+                lastIsSuccess ? 'bg-green-500' : 'bg-amber-500'
+              }`}
+            />
             Last: {isDesco ? (rechargeHistory[0]?.status || 'Unknown') : (lastIsSuccess ? 'Auto' : 'PIN')}
           </span>
-        </div>
+        </motion.div>
       </div>
 
       <div className="overflow-x-auto">
@@ -99,7 +126,13 @@ export default function RechargeHistory({ rechargeHistory, provider }) {
           </thead>
           <tbody className="divide-y divide-[var(--color-outline)]">
             {visible.map((r, i) => (
-              <tr key={i} className="hover:bg-gray-50/50 transition-colors">
+              <motion.tr
+                key={i}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: Math.min(i * 0.03, 0.3) }}
+                className="hover:bg-gray-50/50 transition-colors"
+              >
                 <td className="px-6 py-4 text-[var(--color-ink)]/70">{r.serial}</td>
                 <td className="px-6 py-4">
                   <div className="font-medium text-[var(--color-ink)]">{r.date}</div>
@@ -126,20 +159,26 @@ export default function RechargeHistory({ rechargeHistory, provider }) {
                     {isDesco ? (r.status || 'Unknown') : (r.status === 'Success' ? 'Auto' : 'PIN')}
                   </span>
                 </td>
-              </tr>
+              </motion.tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      {rechargeHistory.length > 10 && (
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="w-full py-4 text-sm font-medium text-[var(--color-ink)] hover:bg-gray-50 transition-colors border-t border-[var(--color-outline)] cursor-pointer"
-        >
-          {expanded ? 'Show Less' : `Show All ${rechargeHistory.length} Transactions`}
-        </button>
-      )}
-    </div>
+      <AnimatePresence>
+        {rechargeHistory.length > 10 && (
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            whileHover={{ backgroundColor: 'rgba(0,0,0,0.02)' }}
+            whileTap={{ scale: 0.99 }}
+            onClick={() => setExpanded(!expanded)}
+            className="w-full py-4 text-sm font-medium text-[var(--color-ink)] transition-colors border-t border-[var(--color-outline)] cursor-pointer"
+          >
+            {expanded ? 'Show Less' : `Show All ${rechargeHistory.length} Transactions`}
+          </motion.button>
+        )}
+      </AnimatePresence>
+    </motion.div>
   )
 }
