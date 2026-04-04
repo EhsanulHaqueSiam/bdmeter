@@ -7,6 +7,10 @@ A React + Netlify Functions app for checking prepaid electricity meter data from
 
 The UI includes recharge history, monthly usage analytics, charts, and reusable saved meter profiles.
 
+## Live URL
+
+https://bdmeter.netlify.app/
+
 ## Screenshots
 
 ### Landing (Desktop)
