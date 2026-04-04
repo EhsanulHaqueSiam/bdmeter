@@ -166,9 +166,30 @@ function App() {
       const apiUrl = prov === 'desco'
         ? `/api/desco?account=${meter}&meter=${meter}`
         : `/api/nesco?meter=${meter}`
-      const res = await fetch(apiUrl)
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || 'Failed to fetch data')
+
+      // Retry with exponential backoff (3 attempts)
+      let res, json, lastErr
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (requestId !== requestRef.current) return
+        try {
+          const controller = new AbortController()
+          const timeout = setTimeout(() => controller.abort(), 20000)
+          res = await fetch(apiUrl, { signal: controller.signal })
+          clearTimeout(timeout)
+          json = await res.json()
+          if (!res.ok) throw new Error(json.error || 'Failed to fetch data')
+          lastErr = null
+          break
+        } catch (e) {
+          lastErr = e
+          if (e.name === 'AbortError') lastErr = new Error('Request timed out. Retrying...')
+          if (attempt < 2) {
+            setError(`Attempt ${attempt + 1} failed. Retrying...`)
+            await new Promise(r => setTimeout(r, (attempt + 1) * 2000))
+          }
+        }
+      }
+      if (lastErr) throw lastErr
       if (!json.rechargeHistory?.length && !json.monthlyUsage?.length) {
         throw new Error('No data found. Please check your number and try again.')
       }
