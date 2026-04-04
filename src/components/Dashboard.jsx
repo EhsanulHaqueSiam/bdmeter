@@ -140,7 +140,7 @@ export default function Dashboard({ data, meterNo, onReset, isSaved, onSave, met
     >
       <motion.div variants={fadeUp} className="flex items-center justify-end gap-3 print:hidden">
         {meters && meters.length >= 2 && (
-          <MeterComparison meters={meters} currentMeter={meterNo} currentProvider={data.provider} t={t} />
+          <MeterComparison meters={meters} t={t} />
         )}
         <PrintButton t={t} />
         <ExportDropdown data={data} t={t} />

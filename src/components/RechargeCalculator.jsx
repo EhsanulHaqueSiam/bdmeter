@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 export default function RechargeCalculator({ data, t }) {
   const [amount, setAmount] = useState('')
 
-  const { monthlyUsage, dailyConsumption, rechargeHistory, customerInfo } = data
+  const { monthlyUsage, dailyConsumption, rechargeHistory } = data
 
   // Compute cost per kWh
   let costPerKwh = 0

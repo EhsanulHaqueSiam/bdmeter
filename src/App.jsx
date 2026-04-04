@@ -311,7 +311,7 @@ function App() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [data]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [data])
 
   // Auto-refresh every 5 minutes when dashboard is open
   useEffect(() => {

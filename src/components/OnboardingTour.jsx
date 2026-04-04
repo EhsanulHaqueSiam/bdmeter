@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { haptic } from '../utils/haptic'
 
@@ -44,16 +44,14 @@ const steps = [
 ]
 
 export default function OnboardingTour({ t }) {
-  const [show, setShow] = useState(false)
-  const [step, setStep] = useState(0)
-
-  useEffect(() => {
+  const [show, setShow] = useState(() => {
     try {
-      if (!localStorage.getItem(STORAGE_KEY)) {
-        setShow(true)
-      }
-    } catch {}
-  }, [])
+      return !localStorage.getItem(STORAGE_KEY)
+    } catch {
+      return false
+    }
+  })
+  const [step, setStep] = useState(0)
 
   const handleDone = () => {
     setShow(false)

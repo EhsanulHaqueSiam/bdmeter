@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { haptic } from '../utils/haptic'
 
-export default function MeterComparison({ meters, currentMeter, currentProvider, t }) {
+export default function MeterComparison({ meters, t }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState([])
