@@ -38,9 +38,27 @@ function CopyButton({ text }) {
   )
 }
 
-export default function RechargeHistory({ rechargeHistory }) {
+function formatMoney(value, { decimals = 0, zeroAsDash = false } = {}) {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return '-'
+  if (zeroAsDash && n === 0) return '-'
+  return `৳${n.toLocaleString(undefined, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  })}`
+}
+
+function formatKwh(value) {
+  const n = Number(value)
+  if (!Number.isFinite(n) || n === 0) return '-'
+  return n.toFixed(2)
+}
+
+export default function RechargeHistory({ rechargeHistory, provider }) {
   const [expanded, setExpanded] = useState(false)
+  const isDesco = provider === 'desco'
   const visible = expanded ? rechargeHistory : rechargeHistory.slice(0, 10)
+  const lastIsSuccess = ['Success', 'Successful'].includes(rechargeHistory[0]?.status)
 
   return (
     <div className="bg-white rounded-2xl border border-[var(--color-outline)] shadow-sm overflow-hidden">
@@ -51,31 +69,31 @@ export default function RechargeHistory({ rechargeHistory }) {
         </div>
         <div className="flex items-center">
           <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${
-            rechargeHistory[0]?.status === 'Success'
+            lastIsSuccess
               ? 'bg-green-50 text-green-700 border-green-200'
               : 'bg-amber-50 text-amber-700 border-amber-200'
           }`}>
             <span className={`w-2 h-2 rounded-full ${
-              rechargeHistory[0]?.status === 'Success' ? 'bg-green-500' : 'bg-amber-500'
+              lastIsSuccess ? 'bg-green-500' : 'bg-amber-500'
             }`} />
-            Last: {rechargeHistory[0]?.status === 'Success' ? 'Auto' : 'PIN'}
+            Last: {isDesco ? (rechargeHistory[0]?.status || 'Unknown') : (lastIsSuccess ? 'Auto' : 'PIN')}
           </span>
         </div>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left whitespace-nowrap">
+        <table className={isDesco ? 'min-w-[920px] w-full text-sm text-left whitespace-nowrap' : 'min-w-[1200px] w-full text-sm text-left whitespace-nowrap'}>
           <thead className="bg-gray-50/50 text-[var(--color-ink)]/70 font-medium">
             <tr>
               <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium">#</th>
               <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium">Date & Token</th>
               <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right">Amount</th>
               <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right">Elec</th>
-              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right hidden sm:table-cell">kWh</th>
-              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right hidden md:table-cell">VAT</th>
-              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right hidden lg:table-cell">Demand</th>
-              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right hidden lg:table-cell">Rebate</th>
-              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-center hidden sm:table-cell">Medium</th>
+              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right">kWh</th>
+              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right">VAT</th>
+              {!isDesco && <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right">Demand</th>}
+              {!isDesco && <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right">Rebate</th>}
+              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-center">Medium</th>
               <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-center">Status</th>
             </tr>
           </thead>
@@ -87,25 +105,25 @@ export default function RechargeHistory({ rechargeHistory }) {
                   <div className="font-medium text-[var(--color-ink)]">{r.date}</div>
                   <div className="flex items-center mt-1">
                     <span className="text-[var(--color-ink)]/60 truncate max-w-[150px]" title={r.tokenNo}>{r.tokenNo}</span>
-                    {r.status === 'Failed' && <CopyButton text={r.tokenNo} />}
+                    {!isDesco && r.status === 'Failed' && <CopyButton text={r.tokenNo} />}
                   </div>
                 </td>
-                <td className="px-6 py-4 text-right font-semibold text-[var(--color-ink)]">৳{r.rechargeAmount}</td>
-                <td className="px-6 py-4 text-right text-[var(--color-ink)]/80">৳{r.electricity.toFixed(0)}</td>
-                <td className="px-6 py-4 text-right text-[var(--color-ink)] hidden sm:table-cell">{r.probableKwh}</td>
-                <td className="px-6 py-4 text-right text-[var(--color-ink)]/60 hidden md:table-cell">৳{r.vat.toFixed(0)}</td>
-                <td className="px-6 py-4 text-right text-[var(--color-ink)]/60 hidden lg:table-cell">৳{r.demandCharge}</td>
-                <td className="px-6 py-4 text-right text-green-600 hidden lg:table-cell">{r.rebate < 0 ? `৳${Math.abs(r.rebate).toFixed(0)}` : '-'}</td>
-                <td className="px-6 py-4 text-center hidden sm:table-cell">
+                <td className="px-6 py-4 text-right font-semibold text-[var(--color-ink)]">{formatMoney(r.rechargeAmount)}</td>
+                <td className="px-6 py-4 text-right text-[var(--color-ink)]/80">{formatMoney(r.electricity)}</td>
+                <td className="px-6 py-4 text-right text-[var(--color-ink)]">{formatKwh(r.probableKwh)}</td>
+                <td className="px-6 py-4 text-right text-[var(--color-ink)]/60">{formatMoney(r.vat, { zeroAsDash: true })}</td>
+                {!isDesco && <td className="px-6 py-4 text-right text-[var(--color-ink)]/60">{formatMoney(r.demandCharge, { zeroAsDash: true })}</td>}
+                {!isDesco && <td className="px-6 py-4 text-right text-green-600">{r.rebate < 0 ? `৳${Math.abs(r.rebate).toFixed(0)}` : '-'}</td>}
+                <td className="px-6 py-4 text-center">
                   <span className="px-2.5 py-1 rounded-md bg-gray-100 text-[var(--color-ink)]/80 text-xs font-medium">{r.medium}</span>
                 </td>
                 <td className="px-6 py-4 text-center">
                   <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${
-                    r.status === 'Success'
+                    ['Success', 'Successful'].includes(r.status)
                       ? 'bg-green-50 text-green-700 border-green-200'
                       : 'bg-amber-50 text-amber-700 border-amber-200'
                   }`}>
-                    {r.status === 'Success' ? 'Auto' : 'PIN'}
+                    {isDesco ? (r.status || 'Unknown') : (r.status === 'Success' ? 'Auto' : 'PIN')}
                   </span>
                 </td>
               </tr>

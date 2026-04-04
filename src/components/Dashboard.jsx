@@ -17,10 +17,10 @@ export default function Dashboard({ data, meterNo, onReset }) {
         <RechargeInsights rechargeHistory={data.rechargeHistory} provider={data.provider} />
       )}
       {data.rechargeHistory?.length > 0 && (
-        <RechargeHistory rechargeHistory={data.rechargeHistory} />
+        <RechargeHistory rechargeHistory={data.rechargeHistory} provider={data.provider} />
       )}
       {data.monthlyUsage?.length > 0 && (
-        <MonthlyTable monthlyUsage={data.monthlyUsage} />
+        <MonthlyTable monthlyUsage={data.monthlyUsage} provider={data.provider} />
       )}
     </div>
   )
