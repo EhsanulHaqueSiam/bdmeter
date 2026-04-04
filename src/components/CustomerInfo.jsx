@@ -33,8 +33,8 @@ export default function CustomerInfo({ data, meterNo, onReset }) {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-px bg-[var(--color-outline)]">
         {fields.map((f, i) => (
           <div key={i} className="p-5 bg-white">
-            <div className="text-sm text-[var(--color-ink)]/70 mb-1">{f.label}</div>
-            <div className="text-base font-medium text-[var(--color-ink)] truncate">{f.value}</div>
+            <div className="text-sm text-[var(--color-ink)]/80 mb-1">{f.label}</div>
+            <div className="text-base font-semibold text-[var(--color-ink)] break-words">{f.value}</div>
           </div>
         ))}
       </div>

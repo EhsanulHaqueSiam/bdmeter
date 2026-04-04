@@ -13,20 +13,20 @@ export default function MonthlyTable({ monthlyUsage }) {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left whitespace-nowrap">
+        <table className="min-w-[1240px] w-full text-sm text-left whitespace-nowrap">
           <thead className="bg-gray-50/50 text-[var(--color-ink)]/70 font-medium">
             <tr>
               <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium">Month</th>
               <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right">Recharge</th>
               <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right">Elec</th>
               <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right">kWh</th>
-              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right hidden sm:table-cell">Rebate</th>
-              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right hidden sm:table-cell">Demand</th>
-              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right hidden md:table-cell">Rent</th>
-              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right hidden md:table-cell">VAT</th>
-              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right hidden lg:table-cell">PFC</th>
-              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right hidden lg:table-cell">Dues</th>
-              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right hidden sm:table-cell">Total Ded</th>
+              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right">Rebate</th>
+              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right">Demand</th>
+              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right">Rent</th>
+              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right">VAT</th>
+              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right">PFC</th>
+              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right">Dues</th>
+              <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right">Total Ded</th>
               <th className="px-6 py-4 border-b border-[var(--color-outline)] font-medium text-right">Balance</th>
             </tr>
           </thead>
@@ -42,15 +42,15 @@ export default function MonthlyTable({ monthlyUsage }) {
                 <td className="px-6 py-4 text-right">
                   <span className="px-2.5 py-1 bg-gray-100 text-[var(--color-ink)] rounded-md text-xs font-medium">{m.usedKwh}</span>
                 </td>
-                <td className="px-6 py-4 text-right text-green-600 hidden sm:table-cell">
+                <td className="px-6 py-4 text-right text-green-600">
                   {m.rebate < 0 ? `৳${Math.abs(m.rebate).toFixed(2)}` : '-'}
                 </td>
-                <td className="px-6 py-4 text-right text-[var(--color-ink)]/60 hidden sm:table-cell">৳{m.demandCharge}</td>
-                <td className="px-6 py-4 text-right text-[var(--color-ink)]/60 hidden md:table-cell">৳{m.meterRent}</td>
-                <td className="px-6 py-4 text-right text-[var(--color-ink)]/60 hidden md:table-cell">৳{m.vat.toFixed(2)}</td>
-                <td className="px-6 py-4 text-right text-[var(--color-ink)]/60 hidden lg:table-cell">{m.pfcCharge > 0 ? `৳${m.pfcCharge}` : '-'}</td>
-                <td className="px-6 py-4 text-right text-[var(--color-ink)]/60 hidden lg:table-cell">{m.paidDues > 0 ? `৳${m.paidDues}` : '-'}</td>
-                <td className="px-6 py-4 text-right text-[var(--color-ink)]/80 hidden sm:table-cell">৳{m.totalUsage.toLocaleString()}</td>
+                <td className="px-6 py-4 text-right text-[var(--color-ink)]/60">৳{m.demandCharge}</td>
+                <td className="px-6 py-4 text-right text-[var(--color-ink)]/60">৳{m.meterRent}</td>
+                <td className="px-6 py-4 text-right text-[var(--color-ink)]/60">৳{m.vat.toFixed(2)}</td>
+                <td className="px-6 py-4 text-right text-[var(--color-ink)]/60">{m.pfcCharge > 0 ? `৳${m.pfcCharge}` : '-'}</td>
+                <td className="px-6 py-4 text-right text-[var(--color-ink)]/60">{m.paidDues > 0 ? `৳${m.paidDues}` : '-'}</td>
+                <td className="px-6 py-4 text-right text-[var(--color-ink)]/80">৳{m.totalUsage.toLocaleString()}</td>
                 <td className="px-6 py-4 text-right">
                   <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${m.endBalance >= 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
                     ৳{m.endBalance.toFixed(2)}
