@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import MeterInput from './components/MeterInput'
-import Dashboard from './components/Dashboard'
 import useMeters from './hooks/useMeters'
+
+const Dashboard = lazy(() => import('./components/Dashboard'))
 
 function App() {
   const [data, setData] = useState(null)
@@ -131,11 +132,13 @@ function App() {
         )}
         {loading && <LoadingSkeleton provider={provider} />}
         {data && (
-          <Dashboard
-            data={data}
-            meterNo={meterNo}
-            onReset={goHome}
-          />
+          <Suspense fallback={<LoadingSkeleton provider={provider} />}>
+            <Dashboard
+              data={data}
+              meterNo={meterNo}
+              onReset={goHome}
+            />
+          </Suspense>
         )}
       </main>
 
