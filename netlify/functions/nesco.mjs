@@ -2,129 +2,90 @@ import * as cheerio from 'cheerio';
 
 const BASE_URL = 'https://customer.nesco.gov.bd';
 const PANEL_URL = `${BASE_URL}/pre/panel`;
+const UA = 'Mozilla/5.0 (X11; Linux x86_64; rv:149.0) Gecko/20100101 Firefox/149.0';
 
-const HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:149.0) Gecko/20100101 Firefox/149.0',
-  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-  'Accept-Language': 'en-US,en;q=0.9',
-  'Origin': BASE_URL,
-  'Referer': PANEL_URL,
-};
-
-function extractCookies(response) {
-  const cookies = [];
-  const setCookieHeaders = response.headers.getSetCookie?.() || [];
-  for (const header of setCookieHeaders) {
-    const cookie = header.split(';')[0];
-    cookies.push(cookie);
+function getCookies(response) {
+  const cookies = {};
+  const sc = response.headers.getSetCookie?.() || [];
+  for (const h of sc) {
+    const c = h.split(';')[0];
+    const eq = c.indexOf('=');
+    if (eq > 0) cookies[c.substring(0, eq)] = c.substring(eq + 1);
   }
-  return cookies.join('; ');
+  if (Object.keys(cookies).length > 0) return cookies;
+
+  // Fallback: raw header regex
+  const raw = response.headers.get('set-cookie') || '';
+  for (const name of ['XSRF-TOKEN', 'customer_service_portal_session']) {
+    const m = raw.match(new RegExp(`${name}=([^;]+)`));
+    if (m) cookies[name] = m[1];
+  }
+  return cookies;
 }
 
-async function getSession() {
-  const res = await fetch(PANEL_URL, {
-    headers: HEADERS,
-    redirect: 'manual',
+function toCookieStr(cookies) {
+  return Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; ');
+}
+
+async function fetchNesco(custNo, submitLabel) {
+  // GET page for token + cookies
+  const getRes = await fetch(PANEL_URL, {
+    headers: { 'User-Agent': UA },
   });
-
-  let cookies = extractCookies(res);
-  const html = await res.text();
-
-  // Handle redirect
-  if (res.status >= 300 && res.status < 400) {
-    const location = res.headers.get('location');
-    if (location) {
-      const res2 = await fetch(location.startsWith('http') ? location : `${BASE_URL}${location}`, {
-        headers: { ...HEADERS, Cookie: cookies },
-        redirect: 'manual',
-      });
-      const newCookies = extractCookies(res2);
-      if (newCookies) cookies = newCookies;
-      const html2 = await res2.text();
-      const $2 = cheerio.load(html2);
-      const token = $2('input[name="_token"]').val() || $2('meta[name="csrf-token"]').attr('content');
-      return { token, cookies };
-    }
-  }
+  const html = await getRes.text();
+  const cookies = getCookies(getRes);
 
   const $ = cheerio.load(html);
   const token = $('input[name="_token"]').val() || $('meta[name="csrf-token"]').attr('content');
-  return { token, cookies };
-}
+  if (!token) throw new Error('No CSRF token');
 
-async function fetchPage(custNo, submitType, cookies, token) {
-  const submitValues = {
-    recharge: 'রিচার্জ হিস্ট্রি',
-    monthly: 'মাসিক ব্যবহার',
-  };
-
-  const body = new URLSearchParams({
-    _token: token,
-    cust_no: custNo,
-    submit: submitValues[submitType],
-  });
-
-  const res = await fetch(PANEL_URL, {
+  // POST for data
+  const postRes = await fetch(PANEL_URL, {
     method: 'POST',
     headers: {
-      ...HEADERS,
+      'User-Agent': UA,
       'Content-Type': 'application/x-www-form-urlencoded',
-      Cookie: cookies,
+      'Cookie': toCookieStr(cookies),
+      'Origin': BASE_URL,
+      'Referer': PANEL_URL,
     },
-    body: body.toString(),
-    redirect: 'follow',
+    body: new URLSearchParams({
+      _token: token,
+      cust_no: custNo,
+      submit: submitLabel,
+    }).toString(),
   });
 
-  const newCookies = extractCookies(res);
-  const html = await res.text();
-  const $ = cheerio.load(html);
-  const newToken = $('input[name="_token"]').val() || $('meta[name="csrf-token"]').attr('content');
-
-  return { html, $, newToken, cookies: newCookies || cookies };
+  const postHtml = await postRes.text();
+  if (postHtml.includes('Page Expired')) throw new Error('CSRF expired');
+  return cheerio.load(postHtml);
 }
 
 function parseCustomerInfo($) {
   const info = {};
-  const labels = [
-    ['name', 'গ্রাহকের নাম'],
-    ['fatherName', 'পিতা/স্বামীর নাম'],
-    ['address', 'ঠিকানা'],
-    ['mobile', 'মোবাইল'],
-    ['office', 'সংশ্লিষ্ট বিদ্যুৎ অফিস'],
-    ['feeder', 'ফিডারের নাম'],
-    ['consumerNo', 'কনজ্যুমার নম্বর'],
-    ['meterNo', 'মিটার নম্বর'],
-    ['approvedLoad', 'অনুমোদিত লোড'],
-    ['tariff', 'অনুমোদিত ট্যারিফ'],
-    ['meterType', 'মিটারের ধরণ'],
-    ['meterStatus', 'মিটার স্ট্যাটাস'],
-    ['installDate', 'মিটার স্থাপনের তারিখ'],
-    ['minRecharge', 'মিনিমাম রিচার্জের পরিমাণ'],
-    ['balance', 'অবশিষ্ট ব্যালেন্স'],
+
+  // NESCO puts customer values in disabled <input> elements after label text.
+  // Structure: <label>...Bengali label...</label> <div><input disabled value="VALUE"></div>
+  // Extract all disabled input values in order - they map to known fields.
+  const fieldKeys = [
+    'name', 'fatherName', 'address', 'mobile', 'office', 'feeder',
+    'consumerNo', 'meterNo', 'approvedLoad', 'tariff', 'meterType',
+    'meterStatus', 'installDate', 'minRecharge', 'balance',
   ];
 
-  labels.forEach(([key, label]) => {
-    $('label').each((_, el) => {
-      const text = $(el).text().trim();
-      if (text.includes(label)) {
-        const row = $(el).closest('.form-group, .row, div');
-        const valueEl = row.find('span, .col-md-4, .col-md-3').last();
-        let value = valueEl.text().trim();
-        if (!value) {
-          const siblings = row.find('div').not($(el).parent());
-          value = siblings.text().trim();
-        }
-        if (value) info[key] = value;
-      }
-    });
+  const section = $('section').first();
+  const beforeTable = section.html()?.split('<table')[0] || '';
+  const $info = cheerio.load(beforeTable);
+  $info('input[disabled]').each((i, el) => {
+    const val = $info(el).attr('value')?.trim();
+    if (val && i < fieldKeys.length) {
+      info[fieldKeys[i]] = val;
+    }
   });
 
-  // Also try extracting from the broader HTML structure
-  const mainContent = $('main').html() || $('body').html();
-  const textContent = $('section').first().text();
-
-  // Try extracting balance timestamp
-  const timeMatch = textContent?.match(/সময়ঃ\s*([\s\S]*?)\)/);
+  // Extract balance timestamp from the label's <span>
+  const allText = section.text() || '';
+  const timeMatch = allText.match(/সময়ঃ\s*([\s\S]*?)\)/);
   if (timeMatch) info.balanceTime = timeMatch[1].trim();
 
   return info;
@@ -132,19 +93,15 @@ function parseCustomerInfo($) {
 
 function parseRechargeHistory($) {
   const rows = [];
-  const table = $('table').first();
-
-  table.find('tbody tr, tr').each((i, row) => {
-    if (i === 0) return; // skip header
+  $('table').first().find('tr').each((i, row) => {
+    if (i === 0) return;
     const cells = [];
     $(row).find('td').each((_, cell) => {
       cells.push($(cell).text().trim().replace(/\s+/g, ' '));
     });
     if (cells.length >= 14) {
       rows.push({
-        serial: cells[0],
-        seqNo: cells[1],
-        tokenNo: cells[2],
+        serial: cells[0], seqNo: cells[1], tokenNo: cells[2],
         meterRent: parseFloat(cells[3]) || 0,
         demandCharge: parseFloat(cells[4]) || 0,
         pfcCharge: parseFloat(cells[5]) || 0,
@@ -154,30 +111,24 @@ function parseRechargeHistory($) {
         electricity: parseFloat(cells[9]) || 0,
         rechargeAmount: parseFloat(cells[10]) || 0,
         probableKwh: parseFloat(cells[11]) || 0,
-        medium: cells[12],
-        date: cells[13],
-        status: cells[14] || '',
+        medium: cells[12], date: cells[13], status: cells[14] || '',
       });
     }
   });
-
   return rows;
 }
 
 function parseMonthlyUsage($) {
   const rows = [];
-  const table = $('table').first();
-
-  table.find('tbody tr, tr').each((i, row) => {
-    if (i === 0) return; // skip header
+  $('table').first().find('tr').each((i, row) => {
+    if (i === 0) return;
     const cells = [];
     $(row).find('td').each((_, cell) => {
       cells.push($(cell).text().trim().replace(/,/g, ''));
     });
     if (cells.length >= 12) {
       rows.push({
-        year: cells[0],
-        month: cells[1],
+        year: cells[0], month: cells[1],
         totalRecharge: parseFloat(cells[2]) || 0,
         rebate: parseFloat(cells[3]) || 0,
         usedElectricity: parseFloat(cells[4]) || 0,
@@ -192,12 +143,10 @@ function parseMonthlyUsage($) {
       });
     }
   });
-
   return rows;
 }
 
 export default async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,
@@ -213,54 +162,26 @@ export default async (req) => {
   const custNo = url.searchParams.get('meter');
 
   if (!custNo || custNo.length < 8 || custNo.length > 11 || !/^\d+$/.test(custNo)) {
-    return Response.json(
-      { error: 'Invalid meter number. Must be 8-11 digits.' },
-      { status: 400 }
-    );
+    return Response.json({ error: 'Invalid meter number. Must be 8-11 digits.' }, { status: 400 });
   }
 
   try {
-    // Step 1: Get session
-    const session = await getSession();
-    if (!session.token) {
-      return Response.json({ error: 'Failed to get session from NESCO' }, { status: 502 });
-    }
+    const $recharge = await fetchNesco(custNo, 'রিচার্জ হিস্ট্রি');
+    const customerInfo = parseCustomerInfo($recharge);
+    const rechargeHistory = parseRechargeHistory($recharge);
 
-    // Step 2: Fetch recharge history
-    const rechargeResult = await fetchPage(custNo, 'recharge', session.cookies, session.token);
-    const customerInfo = parseCustomerInfo(rechargeResult.$);
-    const rechargeHistory = parseRechargeHistory(rechargeResult.$);
-
-    // Check if we got valid data (look for error messages)
-    const pageText = rechargeResult.$.text();
-    if (pageText.includes('Page Expired') || pageText.includes('419')) {
-      return Response.json({ error: 'Session expired. Please try again.' }, { status: 502 });
-    }
-
-    // Step 3: Get new session for monthly usage
-    const session2 = await getSession();
-
-    // Step 4: Fetch monthly usage
-    const monthlyResult = await fetchPage(custNo, 'monthly', session2.cookies, session2.token);
-    const monthlyUsage = parseMonthlyUsage(monthlyResult.$);
+    const $monthly = await fetchNesco(custNo, 'মাসিক ব্যবহার');
+    const monthlyUsage = parseMonthlyUsage($monthly);
 
     return Response.json({
-      customerInfo,
-      rechargeHistory,
-      monthlyUsage,
+      customerInfo, rechargeHistory, monthlyUsage,
       fetchedAt: new Date().toISOString(),
     }, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, max-age=300',
-      },
+      headers: { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=300' },
     });
   } catch (err) {
-    console.error('NESCO fetch error:', err);
-    return Response.json(
-      { error: 'Failed to fetch data from NESCO. Please try again.' },
-      { status: 502 }
-    );
+    console.error('NESCO error:', err.message);
+    return Response.json({ error: `Failed: ${err.message}` }, { status: 502 });
   }
 };
 
