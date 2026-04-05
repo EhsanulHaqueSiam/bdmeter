@@ -78,16 +78,22 @@ function parseCustomerInfo($) {
   const beforeTable = section.html()?.split('<table')[0] || '';
   const $info = cheerio.load(beforeTable);
   $info('input[disabled]').each((i, el) => {
-    const val = $info(el).attr('value')?.trim();
-    if (val && i < fieldKeys.length) {
+    const val = $info(el).attr('value')?.trim() || '';
+    if (i < fieldKeys.length) {
       info[fieldKeys[i]] = val;
     }
+  });
+
+  // Keep a stable customer info shape even when portal omits some values.
+  fieldKeys.forEach((key) => {
+    if (info[key] == null) info[key] = '';
   });
 
   // Extract balance timestamp from the label's <span>
   const allText = section.text() || '';
   const timeMatch = allText.match(/সময়ঃ\s*([\s\S]*?)\)/);
   if (timeMatch) info.balanceTime = timeMatch[1].trim();
+  if (!info.balanceTime) info.balanceTime = '';
 
   return info;
 }
@@ -183,7 +189,17 @@ export default async (req) => {
     const monthlyUsage = parseMonthlyUsage($monthly);
 
     return Response.json({
-      customerInfo, rechargeHistory, monthlyUsage,
+      provider: 'nesco',
+      customerInfo,
+      rechargeHistory,
+      monthlyUsage,
+      previousMonthlyUsage: [],
+      dailyConsumption: [],
+      descoInsights: null,
+      meta: {
+        rechargeHistorySource: 'live',
+        monthlyUsageSource: 'live',
+      },
       fetchedAt: new Date().toISOString(),
     }, {
       headers: { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=300' },

@@ -84,10 +84,19 @@ function ShareButton({ meterNo, provider, t }) {
 export default function CustomerInfo({ data, meterNo, onReset, isSaved, onSave, nickname, t }) {
   const { customerInfo } = data
   const isDesco = data?.provider === 'desco'
+  const rawDue = customerInfo?.customerDue
+  const dueAmount = rawDue !== null && rawDue !== undefined && rawDue !== ''
+    ? Number(rawDue)
+    : Number.NaN
+  const dueAmountText = Number.isFinite(dueAmount)
+    ? `৳${dueAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : '-'
 
   const baseFields = [
     { label: 'Consumer No', value: customerInfo?.consumerNo || meterNo },
     { label: 'Meter No', value: customerInfo?.meterNo || '-' },
+    { label: 'Mobile', value: customerInfo?.mobile || '-' },
+    { label: 'Father/Spouse', value: customerInfo?.fatherName || '-' },
     { label: 'Tariff', value: customerInfo?.tariff || '-' },
     { label: 'Load', value: customerInfo?.approvedLoad ? `${customerInfo.approvedLoad} kW` : '-' },
     { label: 'Type', value: customerInfo?.meterType || '-' },
@@ -95,6 +104,7 @@ export default function CustomerInfo({ data, meterNo, onReset, isSaved, onSave, 
     { label: 'Office', value: customerInfo?.office || '-' },
     { label: 'Feeder', value: customerInfo?.feeder || '-' },
     { label: 'Installed', value: customerInfo?.installDate || '-' },
+    { label: 'Balance Time', value: customerInfo?.balanceTime || '-' },
     { label: 'Min Recharge', value: customerInfo?.minRecharge ? `৳${customerInfo.minRecharge}` : '-' },
   ]
   const descoExtraFields = isDesco ? [
@@ -105,6 +115,8 @@ export default function CustomerInfo({ data, meterNo, onReset, isSaved, onSave, 
     { label: 'Zone', value: customerInfo?.zone || '-' },
     { label: 'Block', value: customerInfo?.block || '-' },
     { label: 'Route', value: customerInfo?.route || '-' },
+    { label: 'Due Status', value: customerInfo?.dueStatus || '-' },
+    { label: 'Customer Due', value: dueAmountText },
     { label: 'Latitude', value: customerInfo?.latitude || '-' },
     { label: 'Longitude', value: customerInfo?.longitude || '-' },
   ] : []
