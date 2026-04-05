@@ -220,21 +220,14 @@ export default async (req) => {
 
     // DESCO monthly API doesn't provide month-end balance.
     // Reconstruct a rolling estimate using current balance and monthly net flow.
+    // Keep negatives as-is because meters can legitimately go into due/negative states.
     const currentBalanceNum = Number(balanceRes?.data?.balance);
-    const shouldClampToNonNegative = Number.isFinite(currentBalanceNum) && currentBalanceNum >= 0;
     let rollingBalance = Number.isFinite(currentBalanceNum) ? currentBalanceNum : 0;
     monthlyUsage.forEach((m) => {
-      const normalizedBalance = Number(rollingBalance.toFixed(2));
-      m.endBalance = shouldClampToNonNegative
-        ? Math.max(0, normalizedBalance)
-        : normalizedBalance;
+      m.endBalance = Number(rollingBalance.toFixed(2));
 
       const netFlow = (Number(m.totalRecharge) || 0) - (Number(m.totalUsage) || 0);
       rollingBalance = rollingBalance - netFlow;
-
-      if (shouldClampToNonNegative && rollingBalance < 0) {
-        rollingBalance = 0;
-      }
     });
 
     // Daily consumption
