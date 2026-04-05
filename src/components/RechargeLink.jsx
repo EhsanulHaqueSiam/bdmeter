@@ -111,12 +111,13 @@ export default function RechargeLink({ meterNo, t }) {
     return ok
   }
 
-  const openProvider = async (provider) => {
+  const openProvider = (provider) => {
     haptic()
     setOpen(false)
-    await copyMeter()
 
     const fallbackUrl = appendMeterQuery(provider.webUrl, normalizedMeter)
+    // Keep user-gesture chain for deep-link launch; don't await clipboard.
+    void copyMeter()
 
     if (!isLikelyMobile()) {
       const tab = window.open(fallbackUrl, '_blank', 'noopener,noreferrer')
@@ -137,6 +138,8 @@ export default function RechargeLink({ meterNo, t }) {
         fallbackTimer = null
       }
       document.removeEventListener('visibilitychange', onVisibilityChange)
+      window.removeEventListener('blur', onBlur)
+      window.removeEventListener('pagehide', onPageHide)
     }
 
     const onVisibilityChange = () => {
@@ -144,12 +147,16 @@ export default function RechargeLink({ meterNo, t }) {
         clearFallback()
       }
     }
+    const onBlur = () => clearFallback()
+    const onPageHide = () => clearFallback()
 
     document.addEventListener('visibilitychange', onVisibilityChange)
+    window.addEventListener('blur', onBlur)
+    window.addEventListener('pagehide', onPageHide)
     fallbackTimer = window.setTimeout(() => {
       clearFallback()
       window.location.assign(fallbackUrl)
-    }, 1400)
+    }, 2200)
 
     try {
       window.location.assign(deepLink)
@@ -180,7 +187,7 @@ export default function RechargeLink({ meterNo, t }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -5, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-[min(18rem,calc(100vw-1rem))] sm:left-auto sm:right-0 sm:translate-x-0 sm:w-56 bg-[var(--color-surface)] border border-[var(--color-outline)] rounded-xl shadow-lg overflow-hidden z-[70]"
+            className="absolute top-full mt-2 left-0 w-56 max-w-[calc(100vw-1.5rem)] sm:left-auto sm:right-0 bg-[var(--color-surface)] border border-[var(--color-outline)] rounded-xl shadow-lg overflow-hidden z-[70]"
           >
             {/* Copy meter number */}
             <button
