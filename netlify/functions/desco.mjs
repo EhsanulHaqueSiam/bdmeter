@@ -1,4 +1,5 @@
 import https from 'node:https';
+import { getStore } from '@netlify/blobs';
 import { checkRateLimit } from './rateLimit.mjs';
 
 // DESCO's SSL cert has an incomplete chain — skip verification for their domain
@@ -7,6 +8,67 @@ const agent = new https.Agent({ rejectUnauthorized: false });
 const BASE = 'https://prepaid.desco.org.bd/api';
 const SMART_BASE = 'https://smartprepaid.desco.org.bd/PrePay/v1';
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36';
+const RECHARGE_HISTORY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const RECHARGE_HISTORY_CACHE_LIMIT = 180;
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function withRetry(task, {
+  attempts = 3,
+  baseDelayMs = 600,
+} = {}) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      return await task();
+    } catch (err) {
+      lastError = err;
+      if (attempt < attempts) {
+        await wait(baseDelayMs * attempt);
+      }
+    }
+  }
+  throw lastError || new Error('request failed');
+}
+
+function rechargeHistoryCacheKey(accountNo, meterNo) {
+  return `recharge-history:${accountNo}:${meterNo}`;
+}
+
+async function readRechargeHistoryCache(accountNo, meterNo) {
+  try {
+    const store = getStore('desco-cache');
+    const cached = await store.get(rechargeHistoryCacheKey(accountNo, meterNo), { type: 'json' });
+    if (!cached || !Array.isArray(cached.rows)) return null;
+
+    const updatedAt = Number(cached.updatedAt) || 0;
+    if (!updatedAt) return null;
+    if ((Date.now() - updatedAt) > RECHARGE_HISTORY_CACHE_TTL_MS) return null;
+
+    return {
+      updatedAt,
+      rows: cached.rows,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function writeRechargeHistoryCache(accountNo, meterNo, rows) {
+  if (!Array.isArray(rows) || rows.length === 0) return;
+
+  try {
+    const store = getStore('desco-cache');
+    await store.setJSON(rechargeHistoryCacheKey(accountNo, meterNo), {
+      updatedAt: Date.now(),
+      rows: rows.slice(0, RECHARGE_HISTORY_CACHE_LIMIT),
+    });
+  } catch {
+    // Cache failures should never fail the request.
+  }
+}
 
 function nodeFetch(url, extraHeaders = {}) {
   return new Promise((resolve, reject) => {
@@ -105,14 +167,28 @@ export default async (req) => {
     const twoWeeksAgo = new Date(now);
     twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
 
-    // Fetch all data in parallel
-    const [balanceRes, rechargeRes, monthlyRes, dailyRes, locationRes, minRechargeRes] = await Promise.all([
-      descoFetch(`${BASE}/tkdes/customer/getBalance?${bothQs}`),
-      descoFetch(`${BASE}/tkdes/customer/getRechargeHistory?${bothQs}&dateFrom=${fmt(rechargeFrom)}&dateTo=${fmt(now)}`),
-      descoFetch(`${BASE}/tkdes/customer/getCustomerMonthlyConsumption?${bothQs}&monthFrom=${fmtMonth(monthlyFrom)}&monthTo=${fmtMonth(now)}`),
-      descoFetch(`${BASE}/tkdes/customer/getCustomerDailyConsumption?${bothQs}&dateFrom=${fmt(twoWeeksAgo)}&dateTo=${fmt(now)}`),
-      descoFetch(`${BASE}/common/getCustomerLocation?accountNo=${acct}`),
-      smartFetch(`${SMART_BASE}/customer/min/recharge?${bothQs}`).catch(() => ({ data: null })),
+    const balanceUrl = `${BASE}/tkdes/customer/getBalance?${bothQs}`;
+    const rechargeUrl = `${BASE}/tkdes/customer/getRechargeHistory?${bothQs}&dateFrom=${fmt(rechargeFrom)}&dateTo=${fmt(now)}`;
+    const monthlyUrl = `${BASE}/tkdes/customer/getCustomerMonthlyConsumption?${bothQs}&monthFrom=${fmtMonth(monthlyFrom)}&monthTo=${fmtMonth(now)}`;
+    const dailyUrl = `${BASE}/tkdes/customer/getCustomerDailyConsumption?${bothQs}&dateFrom=${fmt(twoWeeksAgo)}&dateTo=${fmt(now)}`;
+    const locationUrl = `${BASE}/common/getCustomerLocation?accountNo=${acct}`;
+    const minRechargeUrl = `${SMART_BASE}/customer/min/recharge?${bothQs}`;
+
+    // Recharge history is the most unstable DESCO endpoint.
+    // Treat it as soft-fail and fall back to last-good cache if live fetch fails.
+    const rechargeResPromise = withRetry(() => descoFetch(rechargeUrl), {
+      attempts: 4,
+      baseDelayMs: 900,
+    }).catch(() => null);
+
+    // Fetch other data in parallel. Keep optional endpoints non-blocking.
+    const [balanceRes, monthlyRes, dailyRes, locationRes, minRechargeRes, rechargeRes] = await Promise.all([
+      withRetry(() => descoFetch(balanceUrl), { attempts: 2, baseDelayMs: 400 }),
+      withRetry(() => descoFetch(monthlyUrl), { attempts: 2, baseDelayMs: 700 }),
+      withRetry(() => descoFetch(dailyUrl), { attempts: 2, baseDelayMs: 600 }).catch(() => ({ data: [] })),
+      descoFetch(locationUrl).catch(() => ({ data: null, dueStatus: 'False', customerDue: null })),
+      smartFetch(minRechargeUrl).catch(() => ({ data: null })),
+      rechargeResPromise,
     ]);
 
     // Normalize customer info
@@ -140,8 +216,8 @@ export default async (req) => {
       customerDue: locationRes?.customerDue || null,
     };
 
-    // Normalize recharge history
-    const rechargeHistory = (rechargeRes?.data || []).map((r, i) => {
+    // Normalize recharge history (live response if available)
+    const liveRechargeHistory = Array.isArray(rechargeRes?.data) ? rechargeRes.data.map((r, i) => {
       // Extract demand charge and meter rent from chargeItems array
       let demandCharge = 0;
       let meterRent = 0;
@@ -176,7 +252,25 @@ export default async (req) => {
         orderId: r.orderID || '',
         revenue: r.revenue || 0,
       };
-    });
+    }) : [];
+
+    let rechargeHistory = liveRechargeHistory;
+    let rechargeHistorySource = 'live';
+    let rechargeHistoryCachedAt = null;
+
+    if (!liveRechargeHistory.length) {
+      const cachedHistory = await readRechargeHistoryCache(acct, meter);
+      if (cachedHistory?.rows?.length) {
+        rechargeHistory = cachedHistory.rows;
+        rechargeHistorySource = 'cache';
+        rechargeHistoryCachedAt = new Date(cachedHistory.updatedAt).toISOString();
+      } else {
+        rechargeHistory = [];
+        rechargeHistorySource = 'empty';
+      }
+    } else {
+      await writeRechargeHistoryCache(acct, meter, liveRechargeHistory);
+    }
 
     // Compute monthly recharge totals from recharge history
     const monthlyRechargeTotals = {};
@@ -243,6 +337,10 @@ export default async (req) => {
       rechargeHistory,
       monthlyUsage,
       dailyConsumption,
+      meta: {
+        rechargeHistorySource,
+        rechargeHistoryCachedAt,
+      },
       fetchedAt: new Date().toISOString(),
     }, {
       headers: { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=300' },

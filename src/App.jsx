@@ -92,6 +92,103 @@ function getCandidateProviders(meter) {
   return []
 }
 
+const MONTHS_SHORT = {
+  JAN: 0,
+  FEB: 1,
+  MAR: 2,
+  APR: 3,
+  MAY: 4,
+  JUN: 5,
+  JUL: 6,
+  AUG: 7,
+  SEP: 8,
+  OCT: 9,
+  NOV: 10,
+  DEC: 11,
+}
+
+function parseRechargeDate(value) {
+  if (!value) return 0
+  const direct = Date.parse(value)
+  if (Number.isFinite(direct)) return direct
+
+  const match = String(value)
+    .trim()
+    .match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})(?:\s+(\d{1,2}):(\d{2})(?:\s*([AP]M))?)?$/)
+  if (!match) return 0
+
+  const day = Number(match[1])
+  const month = MONTHS_SHORT[match[2].toUpperCase()]
+  const year = Number(match[3])
+  if (!Number.isFinite(day) || month === undefined || !Number.isFinite(year)) return 0
+
+  let hour = Number(match[4] || 0)
+  const minute = Number(match[5] || 0)
+  const meridiem = String(match[6] || '').toUpperCase()
+  if (meridiem === 'PM' && hour < 12) hour += 12
+  if (meridiem === 'AM' && hour === 12) hour = 0
+
+  const ts = new Date(year, month, day, hour, minute, 0, 0).getTime()
+  return Number.isFinite(ts) ? ts : 0
+}
+
+function rechargeRowScore(row) {
+  const fields = [
+    'date', 'tokenNo', 'rechargeAmount', 'electricity', 'probableKwh',
+    'vat', 'demandCharge', 'meterRent', 'medium', 'status',
+  ]
+  return fields.reduce((score, key) => (
+    row?.[key] !== undefined && row?.[key] !== null && row?.[key] !== ''
+      ? score + 1
+      : score
+  ), 0)
+}
+
+function rechargeRowKey(row, index) {
+  const token = String(row?.tokenNo || '').replace(/\s+/g, '')
+  if (token) return `token:${token}`
+
+  const id = String(row?.orderId || row?.orderID || row?.seqNo || '').trim()
+  if (id) return `id:${id}`
+
+  const date = String(row?.date || '').trim()
+  const amount = Number(row?.rechargeAmount || 0).toFixed(2)
+  const medium = String(row?.medium || '').trim().toLowerCase()
+  return `fallback:${date}|${amount}|${medium}|${index}`
+}
+
+function mergeRechargeHistory(freshRows = [], fallbackRows = []) {
+  const selected = new Map()
+
+  const addRows = (rows, priority) => {
+    rows.forEach((row, index) => {
+      if (!row || typeof row !== 'object') return
+      const key = rechargeRowKey(row, index)
+      const current = selected.get(key)
+      const candidate = {
+        row: { ...row },
+        priority,
+        score: rechargeRowScore(row),
+      }
+
+      if (
+        !current ||
+        candidate.priority > current.priority ||
+        (candidate.priority === current.priority && candidate.score > current.score)
+      ) {
+        selected.set(key, candidate)
+      }
+    })
+  }
+
+  addRows(fallbackRows, 1)
+  addRows(freshRows, 2)
+
+  const merged = [...selected.values()].map((entry) => entry.row)
+  merged.sort((a, b) => parseRechargeDate(b.date) - parseRechargeDate(a.date))
+  return merged.map((row, i) => ({ ...row, serial: String(i + 1) }))
+}
+
 function isPageReloadNavigation() {
   try {
     const entries = performance.getEntriesByType?.('navigation')
@@ -235,6 +332,8 @@ function App() {
     prov = AUTO_PROVIDER,
     { save = true, forceRefresh = false, silent = false } = {},
   ) => {
+    const previousMeterNo = meterNo
+    const previousProvider = data?.provider || provider
     const normalizedMeter = String(meter || '').replace(/\D/g, '')
     const lookupMode = prov || AUTO_PROVIDER
     const requestId = ++requestRef.current
@@ -316,6 +415,26 @@ function App() {
       if (requestId !== requestRef.current) return
       setProvider(resolvedProvider)
       const newData = { ...json, provider: resolvedProvider }
+
+      // Keep history stable when DESCO history endpoint is delayed/failing.
+      const fallbackHistorySources = []
+      const cachedForMerge = getCachedMeterData(normalizedMeter, resolvedProvider)
+      if (cachedForMerge?.data?.rechargeHistory?.length) {
+        fallbackHistorySources.push(...cachedForMerge.data.rechargeHistory)
+      }
+      if (
+        data &&
+        previousMeterNo === normalizedMeter &&
+        (data.provider || provider) === resolvedProvider &&
+        Array.isArray(data.rechargeHistory) &&
+        data.rechargeHistory.length
+      ) {
+        fallbackHistorySources.push(...data.rechargeHistory)
+      }
+      if (Array.isArray(newData.rechargeHistory) && fallbackHistorySources.length) {
+        newData.rechargeHistory = mergeRechargeHistory(newData.rechargeHistory, fallbackHistorySources)
+      }
+
       setData(newData)
       setLastUpdated(new Date())
       if (save) {
@@ -342,7 +461,13 @@ function App() {
     } catch (err) {
       if (requestId !== requestRef.current) return
       setError(err.message)
-      setData(null)
+      const isRefreshOfCurrentMeter = (
+        previousMeterNo === normalizedMeter &&
+        (lookupMode === AUTO_PROVIDER || lookupMode === previousProvider)
+      )
+      if (!isRefreshOfCurrentMeter) {
+        setData(null)
+      }
     } finally {
       if (requestId === requestRef.current && shouldShowLoading) {
         setLoading(false)
