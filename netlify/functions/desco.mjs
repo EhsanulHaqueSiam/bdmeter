@@ -10,6 +10,8 @@ const SMART_BASE = 'https://smartprepaid.desco.org.bd/PrePay/v1';
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36';
 const RECHARGE_HISTORY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const RECHARGE_HISTORY_CACHE_LIMIT = 180;
+const MONTHLY_USAGE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const MONTHLY_USAGE_CACHE_LIMIT = 24;
 const MONTHLY_COMPLETE_MONTHS = 12;
 
 function wait(ms) {
@@ -69,6 +71,104 @@ async function writeRechargeHistoryCache(accountNo, meterNo, rows) {
   } catch {
     // Cache failures should never fail the request.
   }
+}
+
+function monthlyUsageCacheKey(accountNo, meterNo) {
+  return `monthly-usage:${accountNo}:${meterNo}`;
+}
+
+async function readMonthlyUsageCache(accountNo, meterNo) {
+  try {
+    const store = getStore('desco-cache');
+    const cached = await store.get(monthlyUsageCacheKey(accountNo, meterNo), { type: 'json' });
+    if (!cached || !Array.isArray(cached.monthlyUsage)) return null;
+
+    const updatedAt = Number(cached.updatedAt) || 0;
+    if (!updatedAt) return null;
+    if ((Date.now() - updatedAt) > MONTHLY_USAGE_CACHE_TTL_MS) return null;
+
+    const monthlyUsage = cached.monthlyUsage
+      .slice(0, MONTHLY_USAGE_CACHE_LIMIT)
+      .map((row) => ({ ...row }));
+    const previousMonthlyUsage = Array.isArray(cached.previousMonthlyUsage)
+      ? cached.previousMonthlyUsage.slice(0, MONTHLY_USAGE_CACHE_LIMIT).map((row) => ({ ...row }))
+      : [];
+
+    return {
+      updatedAt,
+      monthlyUsage,
+      previousMonthlyUsage,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function writeMonthlyUsageCache(accountNo, meterNo, monthlyUsage, previousMonthlyUsage) {
+  if (!Array.isArray(monthlyUsage) || monthlyUsage.length === 0) return;
+
+  try {
+    const store = getStore('desco-cache');
+    await store.setJSON(monthlyUsageCacheKey(accountNo, meterNo), {
+      updatedAt: Date.now(),
+      monthlyUsage: monthlyUsage.slice(0, MONTHLY_USAGE_CACHE_LIMIT),
+      previousMonthlyUsage: Array.isArray(previousMonthlyUsage)
+        ? previousMonthlyUsage.slice(0, MONTHLY_USAGE_CACHE_LIMIT)
+        : [],
+    });
+  } catch {
+    // Cache failures should never fail the request.
+  }
+}
+
+async function fetchMonthlyRows(url, {
+  attempts = 3,
+  baseDelayMs = 700,
+  fallbackUrl = '',
+} = {}) {
+  const fetchOnce = async (targetUrl, maxAttempts) => {
+    let lastRes = { data: [] };
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const res = await descoFetch(targetUrl);
+        lastRes = res;
+        if (Array.isArray(res?.data) && res.data.length > 0) {
+          return { rows: res.data, response: res, found: true };
+        }
+      } catch {
+        // Keep retrying; if all retries fail caller gets empty rows.
+      }
+
+      if (attempt < maxAttempts) {
+        await wait(baseDelayMs * attempt);
+      }
+    }
+
+    return {
+      rows: Array.isArray(lastRes?.data) ? lastRes.data : [],
+      response: lastRes,
+      found: false,
+    };
+  };
+
+  const primary = await fetchOnce(url, attempts);
+  if (primary.found) {
+    return { rows: primary.rows, response: primary.response, source: 'live' };
+  }
+
+  if (fallbackUrl) {
+    const secondary = await fetchOnce(fallbackUrl, Math.max(2, attempts - 1));
+    if (secondary.found) {
+      return { rows: secondary.rows, response: secondary.response, source: 'live-alt-range' };
+    }
+    return { rows: secondary.rows, response: secondary.response, source: 'empty' };
+  }
+
+  return {
+    rows: primary.rows,
+    response: primary.response,
+    source: 'empty',
+  };
 }
 
 function normalizeRechargeRows(rawRows = []) {
@@ -238,6 +338,19 @@ export default async (req) => {
       monthlyToDate.getMonth() + 1,
       0,
     );
+    // Alternate range: last 12 months including current month.
+    const altMonthlyFromDate = new Date(now.getFullYear(), now.getMonth() - (MONTHLY_COMPLETE_MONTHS - 1), 1);
+    const altMonthlyToDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const altPreviousMonthlyFromDate = new Date(
+      altMonthlyFromDate.getFullYear() - 1,
+      altMonthlyFromDate.getMonth(),
+      1,
+    );
+    const altPreviousMonthlyToDate = new Date(
+      altMonthlyToDate.getFullYear() - 1,
+      altMonthlyToDate.getMonth() + 1,
+      0,
+    );
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const currentMonthKey = fmtMonth(currentMonthStart);
 
@@ -249,6 +362,8 @@ export default async (req) => {
     const monthlyRechargeWindowUrl = `${BASE}/tkdes/customer/getRechargeHistory?${bothQs}&dateFrom=${fmt(monthlyFromDate)}&dateTo=${fmt(monthlyToDate)}`;
     const monthlyUrl = `${BASE}/tkdes/customer/getCustomerMonthlyConsumption?${bothQs}&monthFrom=${fmtMonth(monthlyFromDate)}&monthTo=${fmtMonth(monthlyToDate)}`;
     const previousMonthlyUrl = `${BASE}/tkdes/customer/getCustomerMonthlyConsumption?${bothQs}&monthFrom=${fmtMonth(previousMonthlyFromDate)}&monthTo=${fmtMonth(previousMonthlyToDate)}`;
+    const altMonthlyUrl = `${BASE}/tkdes/customer/getCustomerMonthlyConsumption?${bothQs}&monthFrom=${fmtMonth(altMonthlyFromDate)}&monthTo=${fmtMonth(altMonthlyToDate)}`;
+    const altPreviousMonthlyUrl = `${BASE}/tkdes/customer/getCustomerMonthlyConsumption?${bothQs}&monthFrom=${fmtMonth(altPreviousMonthlyFromDate)}&monthTo=${fmtMonth(altPreviousMonthlyToDate)}`;
     const dailyUrl = `${BASE}/tkdes/customer/getCustomerDailyConsumption?${bothQs}&dateFrom=${fmt(twoWeeksAgo)}&dateTo=${fmt(now)}`;
     const locationUrl = `${BASE}/common/getCustomerLocation?accountNo=${acct}`;
     const minRechargeUrl = `${SMART_BASE}/customer/min/recharge?${bothQs}`;
@@ -260,11 +375,22 @@ export default async (req) => {
       baseDelayMs: 900,
     }).catch(() => null);
 
+    const monthlyFetchPromise = fetchMonthlyRows(monthlyUrl, {
+      attempts: 3,
+      baseDelayMs: 700,
+      fallbackUrl: altMonthlyUrl,
+    });
+    const previousMonthlyFetchPromise = fetchMonthlyRows(previousMonthlyUrl, {
+      attempts: 2,
+      baseDelayMs: 700,
+      fallbackUrl: altPreviousMonthlyUrl,
+    }).catch(() => ({ rows: [], source: 'empty' }));
+
     // Fetch other data in parallel. Keep optional endpoints non-blocking.
-    const [balanceRes, monthlyRes, previousMonthlyRes, dailyRes, locationRes, minRechargeRes, rechargeRes, monthlyRechargeRes] = await Promise.all([
+    const [balanceRes, monthlyFetch, previousMonthlyFetch, dailyRes, locationRes, minRechargeRes, rechargeRes, monthlyRechargeRes] = await Promise.all([
       withRetry(() => descoFetch(balanceUrl), { attempts: 2, baseDelayMs: 400 }),
-      withRetry(() => descoFetch(monthlyUrl), { attempts: 2, baseDelayMs: 700 }),
-      withRetry(() => descoFetch(previousMonthlyUrl), { attempts: 2, baseDelayMs: 700 }).catch(() => ({ data: [] })),
+      monthlyFetchPromise,
+      previousMonthlyFetchPromise,
       withRetry(() => descoFetch(dailyUrl), { attempts: 2, baseDelayMs: 600 }).catch(() => ({ data: [] })),
       descoFetch(locationUrl).catch(() => ({ data: null, dueStatus: 'False', customerDue: null })),
       smartFetch(minRechargeUrl).catch(() => ({ data: null })),
@@ -368,8 +494,27 @@ export default async (req) => {
           maxDemand: m.maximumDemand || 0,
         };
       });
-    const monthlyUsage = toMonthlyRows((monthlyRes?.data || []), monthlyRechargeTotals);
-    const previousMonthlyUsage = toMonthlyRows((previousMonthlyRes?.data || []), null);
+    const liveMonthlyUsage = toMonthlyRows((monthlyFetch?.rows || []), monthlyRechargeTotals);
+    const livePreviousMonthlyUsage = toMonthlyRows((previousMonthlyFetch?.rows || []), null);
+
+    let monthlyUsage = liveMonthlyUsage;
+    let previousMonthlyUsage = livePreviousMonthlyUsage;
+    let monthlyUsageSource = 'live';
+    let monthlyUsageCachedAt = null;
+
+    if (!monthlyUsage.length) {
+      const cachedMonthlyUsage = await readMonthlyUsageCache(acct, meter);
+      if (cachedMonthlyUsage?.monthlyUsage?.length) {
+        monthlyUsage = cachedMonthlyUsage.monthlyUsage.map((row) => ({ ...row }));
+        previousMonthlyUsage = (cachedMonthlyUsage.previousMonthlyUsage || []).map((row) => ({ ...row }));
+        monthlyUsageSource = 'cache';
+        monthlyUsageCachedAt = new Date(cachedMonthlyUsage.updatedAt).toISOString();
+      } else {
+        monthlyUsageSource = 'empty';
+      }
+    } else {
+      await writeMonthlyUsageCache(acct, meter, liveMonthlyUsage, livePreviousMonthlyUsage);
+    }
 
     // DESCO monthly API doesn't provide month-end balance.
     // Reconstruct from current balance, adjusting back to previous month-end using
@@ -489,6 +634,10 @@ export default async (req) => {
       rechargeConsumptionComparison,
     };
 
+    const cacheControl = monthlyUsage.length
+      ? 'public, max-age=300'
+      : 'no-store';
+
     return Response.json({
       provider: 'desco',
       customerInfo,
@@ -500,6 +649,9 @@ export default async (req) => {
       meta: {
         rechargeHistorySource,
         rechargeHistoryCachedAt,
+        monthlyUsageSource,
+        monthlyUsageCachedAt,
+        monthlyUsageLiveResult: monthlyFetch?.source || 'empty',
         monthlyRechargeSource,
         balanceAnchor: {
           currentBalance: Number.isFinite(currentBalanceNum) ? currentBalanceNum : 0,
@@ -511,7 +663,7 @@ export default async (req) => {
       },
       fetchedAt: new Date().toISOString(),
     }, {
-      headers: { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=300' },
+      headers: { 'Access-Control-Allow-Origin': '*', 'Cache-Control': cacheControl },
     });
   } catch (err) {
     console.error('DESCO error:', err.message);

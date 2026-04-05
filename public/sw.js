@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bd-meter-v2'
+const CACHE_NAME = 'bd-meter-v3'
 const APP_SHELL = [
   '/',
   '/index.html',

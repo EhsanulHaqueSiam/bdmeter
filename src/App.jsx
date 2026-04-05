@@ -201,6 +201,24 @@ function isPageReloadNavigation() {
   }
 }
 
+function hasMonthlyAnalytics(dataset) {
+  return Array.isArray(dataset?.monthlyUsage) && dataset.monthlyUsage.length > 0
+}
+
+function isCachePayloadUsable(dataset, provider) {
+  if (!dataset) return false
+  const normalizedProvider = provider === 'desco' ? 'desco' : 'nesco'
+  const hasRecharge = Array.isArray(dataset?.rechargeHistory) && dataset.rechargeHistory.length > 0
+  const hasMonthly = hasMonthlyAnalytics(dataset)
+
+  if (normalizedProvider === 'desco') {
+    // DESCO dashboard UX depends heavily on monthly analytics.
+    return hasMonthly
+  }
+
+  return hasMonthly || hasRecharge
+}
+
 function App() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -311,6 +329,16 @@ function App() {
         clearTimeout(timeout)
         json = await res.json()
         if (!res.ok) throw new Error(json.error || 'Failed to fetch data')
+        const descoMonthlyLooksTransient =
+          prov === 'desco' &&
+          (!Array.isArray(json.monthlyUsage) || json.monthlyUsage.length === 0) &&
+          (
+            (Array.isArray(json.rechargeHistory) && json.rechargeHistory.length > 0) ||
+            (Array.isArray(json.dailyConsumption) && json.dailyConsumption.length > 0)
+          )
+        if (descoMonthlyLooksTransient && attempt < 2) {
+          throw new Error('DESCO monthly analytics temporarily unavailable. Retrying...')
+        }
         if (!json.rechargeHistory?.length && !json.monthlyUsage?.length) {
           throw new Error('No data found. Please check your number and try again.')
         }
@@ -359,23 +387,26 @@ function App() {
         if (cached?.data) {
           const cachedProvider = cached.provider || cached.data.provider || lookupMode || 'nesco'
           const cachedData = { ...cached.data, provider: cachedProvider }
+          const useCachedResult = !isOnline || isCachePayloadUsable(cachedData, cachedProvider)
 
-          if (requestId !== requestRef.current) return
-          setProvider(cachedProvider)
-          setData(cachedData)
-          setLastUpdated(new Date(cached.updatedAt || Date.now()))
+          if (useCachedResult) {
+            if (requestId !== requestRef.current) return
+            setProvider(cachedProvider)
+            setData(cachedData)
+            setLastUpdated(new Date(cached.updatedAt || Date.now()))
 
-          if (save) {
-            addMeter(normalizedMeter, cachedData.customerInfo?.name || '', cachedProvider)
-            addSearch(normalizedMeter, cachedProvider)
+            if (save) {
+              addMeter(normalizedMeter, cachedData.customerInfo?.name || '', cachedProvider)
+              addSearch(normalizedMeter, cachedProvider)
+            }
+
+            const url = new URL(window.location)
+            url.searchParams.set('meter', normalizedMeter)
+            url.searchParams.set('provider', cachedProvider)
+            window.history.replaceState({}, '', url)
+            checkLowBalance(cachedData, normalizedMeter)
+            return
           }
-
-          const url = new URL(window.location)
-          url.searchParams.set('meter', normalizedMeter)
-          url.searchParams.set('provider', cachedProvider)
-          window.history.replaceState({}, '', url)
-          checkLowBalance(cachedData, normalizedMeter)
-          return
         }
       }
 
@@ -433,6 +464,44 @@ function App() {
       }
       if (Array.isArray(newData.rechargeHistory) && fallbackHistorySources.length) {
         newData.rechargeHistory = mergeRechargeHistory(newData.rechargeHistory, fallbackHistorySources)
+      }
+
+      const fallbackMonthlyCandidates = []
+      if (cachedForMerge?.data?.monthlyUsage?.length) {
+        fallbackMonthlyCandidates.push(cachedForMerge.data)
+      }
+      if (
+        data &&
+        previousMeterNo === normalizedMeter &&
+        (data.provider || provider) === resolvedProvider &&
+        Array.isArray(data.monthlyUsage) &&
+        data.monthlyUsage.length
+      ) {
+        fallbackMonthlyCandidates.push(data)
+      }
+
+      if (!hasMonthlyAnalytics(newData) && fallbackMonthlyCandidates.length) {
+        const fallbackAnalytics = fallbackMonthlyCandidates.find((candidate) => hasMonthlyAnalytics(candidate))
+        if (fallbackAnalytics) {
+          newData.monthlyUsage = fallbackAnalytics.monthlyUsage
+          if (
+            (!Array.isArray(newData.previousMonthlyUsage) || newData.previousMonthlyUsage.length === 0) &&
+            Array.isArray(fallbackAnalytics.previousMonthlyUsage)
+          ) {
+            newData.previousMonthlyUsage = fallbackAnalytics.previousMonthlyUsage
+          }
+          if (
+            (!newData.descoInsights || !Array.isArray(newData.descoInsights.monthlyComparison) || newData.descoInsights.monthlyComparison.length === 0) &&
+            fallbackAnalytics.descoInsights
+          ) {
+            newData.descoInsights = fallbackAnalytics.descoInsights
+          }
+
+          newData.meta = {
+            ...(newData.meta || {}),
+            monthlyUsageSource: 'client-cache-fallback',
+          }
+        }
       }
 
       setData(newData)
