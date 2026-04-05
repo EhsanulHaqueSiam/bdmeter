@@ -10,6 +10,7 @@ const SMART_BASE = 'https://smartprepaid.desco.org.bd/PrePay/v1';
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36';
 const RECHARGE_HISTORY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const RECHARGE_HISTORY_CACHE_LIMIT = 180;
+const MONTHLY_COMPLETE_MONTHS = 12;
 
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -68,6 +69,67 @@ async function writeRechargeHistoryCache(accountNo, meterNo, rows) {
   } catch {
     // Cache failures should never fail the request.
   }
+}
+
+function normalizeRechargeRows(rawRows = []) {
+  return rawRows.map((r, i) => {
+    let demandCharge = 0;
+    let meterRent = 0;
+    (r.chargeItems || []).forEach((item) => {
+      if (item.chargeItemName?.toLowerCase().includes('demand')) demandCharge += item.chargeAmount || 0;
+      else if (item.chargeItemName?.toLowerCase().includes('rent')) meterRent += item.chargeAmount || 0;
+    });
+
+    const probableKwh = Number.isFinite(Number(r.energyUnit)) && Number(r.energyUnit) > 0
+      ? Number(r.energyUnit)
+      : 0;
+
+    return {
+      serial: String(i + 1),
+      seqNo: String(r.seqNo || ''),
+      tokenNo: r.tokenNo || '',
+      meterRent,
+      demandCharge,
+      pfcCharge: 0,
+      vat: r.VAT || 0,
+      paidDues: 0,
+      rebate: r.rebate || 0,
+      electricity: r.energyAmount || 0,
+      probableKwh,
+      rechargeAmount: r.totalAmount || 0,
+      medium: r.rechargeOperator || 'Online',
+      date: r.rechargeDate || '',
+      status: r.orderStatus === 'Successful' ? 'Success' : r.orderStatus || '',
+      orderId: r.orderID || '',
+      revenue: r.revenue || 0,
+    };
+  });
+}
+
+function buildMonthlyRechargeTotals(rechargeRows = []) {
+  const monthlyRechargeTotals = {};
+  rechargeRows.forEach((r) => {
+    const match = String(r?.date || '').match(/^(\d{4}-\d{2})/);
+    if (!match) return;
+
+    const key = match[1];
+    if (!monthlyRechargeTotals[key]) {
+      monthlyRechargeTotals[key] = { total: 0, vat: 0, demand: 0, rent: 0, rebate: 0 };
+    }
+    monthlyRechargeTotals[key].total += Number(r.rechargeAmount) || 0;
+    monthlyRechargeTotals[key].vat += Number(r.vat) || 0;
+    monthlyRechargeTotals[key].demand += Number(r.demandCharge) || 0;
+    monthlyRechargeTotals[key].rent += Number(r.meterRent) || 0;
+    monthlyRechargeTotals[key].rebate += Number(r.rebate) || 0;
+  });
+  return monthlyRechargeTotals;
+}
+
+function parseDateTime(value) {
+  if (!value) return 0;
+  const normalized = String(value).replace(' ', 'T');
+  const ts = Date.parse(normalized);
+  return Number.isFinite(ts) ? ts : 0;
 }
 
 function nodeFetch(url, extraHeaders = {}) {
@@ -159,17 +221,34 @@ export default async (req) => {
     rechargeFrom.setFullYear(rechargeFrom.getFullYear() - 1);
     rechargeFrom.setDate(rechargeFrom.getDate() + 1); // +1 day to stay within 12 months
 
-    // For monthly consumption: DESCO counts both endpoints as months, so 2025-05 → 2026-04 = 12 months
-    const monthlyFrom = new Date(now);
-    monthlyFrom.setMonth(monthlyFrom.getMonth() - 10);
-    monthlyFrom.setDate(1);
+    // Use complete calendar months for monthly analytics, matching DESCO portal behavior.
+    const monthlyToDate = new Date(now.getFullYear(), now.getMonth(), 0); // last day of previous month
+    const monthlyFromDate = new Date(
+      monthlyToDate.getFullYear(),
+      monthlyToDate.getMonth() - (MONTHLY_COMPLETE_MONTHS - 1),
+      1,
+    );
+    const previousMonthlyFromDate = new Date(
+      monthlyFromDate.getFullYear() - 1,
+      monthlyFromDate.getMonth(),
+      1,
+    );
+    const previousMonthlyToDate = new Date(
+      monthlyToDate.getFullYear() - 1,
+      monthlyToDate.getMonth() + 1,
+      0,
+    );
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const currentMonthKey = fmtMonth(currentMonthStart);
 
     const twoWeeksAgo = new Date(now);
     twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
 
     const balanceUrl = `${BASE}/tkdes/customer/getBalance?${bothQs}`;
     const rechargeUrl = `${BASE}/tkdes/customer/getRechargeHistory?${bothQs}&dateFrom=${fmt(rechargeFrom)}&dateTo=${fmt(now)}`;
-    const monthlyUrl = `${BASE}/tkdes/customer/getCustomerMonthlyConsumption?${bothQs}&monthFrom=${fmtMonth(monthlyFrom)}&monthTo=${fmtMonth(now)}`;
+    const monthlyRechargeWindowUrl = `${BASE}/tkdes/customer/getRechargeHistory?${bothQs}&dateFrom=${fmt(monthlyFromDate)}&dateTo=${fmt(monthlyToDate)}`;
+    const monthlyUrl = `${BASE}/tkdes/customer/getCustomerMonthlyConsumption?${bothQs}&monthFrom=${fmtMonth(monthlyFromDate)}&monthTo=${fmtMonth(monthlyToDate)}`;
+    const previousMonthlyUrl = `${BASE}/tkdes/customer/getCustomerMonthlyConsumption?${bothQs}&monthFrom=${fmtMonth(previousMonthlyFromDate)}&monthTo=${fmtMonth(previousMonthlyToDate)}`;
     const dailyUrl = `${BASE}/tkdes/customer/getCustomerDailyConsumption?${bothQs}&dateFrom=${fmt(twoWeeksAgo)}&dateTo=${fmt(now)}`;
     const locationUrl = `${BASE}/common/getCustomerLocation?accountNo=${acct}`;
     const minRechargeUrl = `${SMART_BASE}/customer/min/recharge?${bothQs}`;
@@ -182,13 +261,15 @@ export default async (req) => {
     }).catch(() => null);
 
     // Fetch other data in parallel. Keep optional endpoints non-blocking.
-    const [balanceRes, monthlyRes, dailyRes, locationRes, minRechargeRes, rechargeRes] = await Promise.all([
+    const [balanceRes, monthlyRes, previousMonthlyRes, dailyRes, locationRes, minRechargeRes, rechargeRes, monthlyRechargeRes] = await Promise.all([
       withRetry(() => descoFetch(balanceUrl), { attempts: 2, baseDelayMs: 400 }),
       withRetry(() => descoFetch(monthlyUrl), { attempts: 2, baseDelayMs: 700 }),
+      withRetry(() => descoFetch(previousMonthlyUrl), { attempts: 2, baseDelayMs: 700 }).catch(() => ({ data: [] })),
       withRetry(() => descoFetch(dailyUrl), { attempts: 2, baseDelayMs: 600 }).catch(() => ({ data: [] })),
       descoFetch(locationUrl).catch(() => ({ data: null, dueStatus: 'False', customerDue: null })),
       smartFetch(minRechargeUrl).catch(() => ({ data: null })),
       rechargeResPromise,
+      withRetry(() => descoFetch(monthlyRechargeWindowUrl), { attempts: 3, baseDelayMs: 800 }).catch(() => null),
     ]);
 
     // Normalize customer info
@@ -204,7 +285,11 @@ export default async (req) => {
       tariff: info.tariffSolution || '',
       meterType: info.phaseType || '',
       meterStatus: 'Active',
-      installDate: info.installationDate?.split(' ')[0] || '',
+      installDate: info.installationDate || '',
+      registrationDate: info.registerDate || '',
+      meterModel: info.meterModel || '',
+      transformer: info.transformer || '',
+      systemType: 'tkdes',
       minRecharge: minRechargeRes?.data != null ? String(minRechargeRes.data) : '',
       balance: balanceRes?.data?.balance != null ? String(balanceRes.data.balance) : '0',
       balanceTime: balanceRes?.data?.readingTime || '',
@@ -212,47 +297,16 @@ export default async (req) => {
       zone: locationRes?.data?.zone || '',
       block: locationRes?.data?.block || '',
       route: locationRes?.data?.route || '',
+      latitude: locationRes?.data?.latitude || '',
+      longitude: locationRes?.data?.longitude || '',
       dueStatus: locationRes?.dueStatus || 'False',
       customerDue: locationRes?.customerDue || null,
     };
 
     // Normalize recharge history (live response if available)
-    const liveRechargeHistory = Array.isArray(rechargeRes?.data) ? rechargeRes.data.map((r, i) => {
-      // Extract demand charge and meter rent from chargeItems array
-      let demandCharge = 0;
-      let meterRent = 0;
-      (r.chargeItems || []).forEach((item) => {
-        if (item.chargeItemName?.toLowerCase().includes('demand')) demandCharge += item.chargeAmount || 0;
-        else if (item.chargeItemName?.toLowerCase().includes('rent')) meterRent += item.chargeAmount || 0;
-      });
-
-      const electricity = r.energyAmount || 0;
-      // DESCO doesn't return kWh per recharge — estimate from energy amount and tariff rate
-      // Use monthly consumption data rate if available, otherwise use a reasonable default
-      const probableKwh = Number.isFinite(Number(r.energyUnit)) && Number(r.energyUnit) > 0
-        ? Number(r.energyUnit)
-        : 0;
-
-      return {
-        serial: String(i + 1),
-        seqNo: String(r.seqNo || ''),
-        tokenNo: r.tokenNo || '',
-        meterRent,
-        demandCharge,
-        pfcCharge: 0,
-        vat: r.VAT || 0,
-        paidDues: 0,
-        rebate: r.rebate || 0,
-        electricity,
-        probableKwh,
-        rechargeAmount: r.totalAmount || 0,
-        medium: r.rechargeOperator || 'Online',
-        date: r.rechargeDate || '',
-        status: r.orderStatus === 'Successful' ? 'Success' : r.orderStatus || '',
-        orderId: r.orderID || '',
-        revenue: r.revenue || 0,
-      };
-    }) : [];
+    const liveRechargeHistory = Array.isArray(rechargeRes?.data)
+      ? normalizeRechargeRows(rechargeRes.data)
+      : [];
 
     let rechargeHistory = liveRechargeHistory;
     let rechargeHistorySource = 'live';
@@ -271,32 +325,35 @@ export default async (req) => {
     } else {
       await writeRechargeHistoryCache(acct, meter, liveRechargeHistory);
     }
+    rechargeHistory = rechargeHistory
+      .slice()
+      .sort((a, b) => parseDateTime(b.date) - parseDateTime(a.date))
+      .map((row, i) => ({ ...row, serial: String(i + 1) }));
 
-    // Compute monthly recharge totals from recharge history
-    const monthlyRechargeTotals = {};
-    rechargeHistory.forEach((r) => {
-      const match = r.date.match(/^(\d{4}-\d{2})/);
-      if (match) {
-        const key = match[1];
-        if (!monthlyRechargeTotals[key]) monthlyRechargeTotals[key] = { total: 0, vat: 0, demand: 0, rent: 0, rebate: 0 };
-        monthlyRechargeTotals[key].total += r.rechargeAmount;
-        monthlyRechargeTotals[key].vat += r.vat;
-        monthlyRechargeTotals[key].demand += r.demandCharge;
-        monthlyRechargeTotals[key].rent += r.meterRent;
-        monthlyRechargeTotals[key].rebate += r.rebate;
-      }
-    });
+    // Compute monthly recharge totals from a dedicated month-aligned history window.
+    const monthlyRechargeRows = Array.isArray(monthlyRechargeRes?.data)
+      ? normalizeRechargeRows(monthlyRechargeRes.data)
+      : [];
+    const monthlyRechargeSource = monthlyRechargeRows.length
+      ? 'monthly-window'
+      : 'fallback-full-history';
+    const monthlyRechargeTotals = buildMonthlyRechargeTotals(
+      monthlyRechargeRows.length ? monthlyRechargeRows : rechargeHistory,
+    );
 
     // Normalize monthly usage — sort by month descending (newest first)
     const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    const monthlyUsage = (monthlyRes?.data || [])
+    const toMonthlyRows = (rows = [], rechargeTotals = null) => rows
       .sort((a, b) => (b.month || '').localeCompare(a.month || ''))
       .map((m) => {
         const [year, monthNum] = (m.month || '').split('-');
-        const rt = monthlyRechargeTotals[m.month] || {};
+        const rt = rechargeTotals ? (rechargeTotals[m.month] || {}) : {};
+        const monthIndex = parseInt(monthNum);
         return {
+          monthKey: m.month || '',
           year: year || '',
-          month: monthNames[parseInt(monthNum)] || monthNum || '',
+          month: monthNames[monthIndex] || monthNum || '',
+          monthIndex: Number.isFinite(monthIndex) ? monthIndex : 0,
           totalRecharge: rt.total || 0,
           rebate: rt.rebate || 0,
           usedElectricity: m.consumedTaka || 0,
@@ -311,12 +368,26 @@ export default async (req) => {
           maxDemand: m.maximumDemand || 0,
         };
       });
+    const monthlyUsage = toMonthlyRows((monthlyRes?.data || []), monthlyRechargeTotals);
+    const previousMonthlyUsage = toMonthlyRows((previousMonthlyRes?.data || []), null);
 
     // DESCO monthly API doesn't provide month-end balance.
-    // Reconstruct a rolling estimate using current balance and monthly net flow.
-    // Keep negatives as-is because meters can legitimately go into due/negative states.
+    // Reconstruct from current balance, adjusting back to previous month-end using
+    // current-month recharge/consumption (so the monthly series aligns to full months).
     const currentBalanceNum = Number(balanceRes?.data?.balance);
-    let rollingBalance = Number.isFinite(currentBalanceNum) ? currentBalanceNum : 0;
+    const currentMonthConsumption = Number(balanceRes?.data?.currentMonthConsumption) || 0;
+    const currentMonthRecharge = rechargeHistory.reduce((sum, r) => (
+      String(r?.date || '').startsWith(currentMonthKey)
+        ? sum + (Number(r.rechargeAmount) || 0)
+        : sum
+    ), 0);
+    const currentMonthNet = currentMonthRecharge - currentMonthConsumption;
+
+    const previousMonthEndBalance = Number.isFinite(currentBalanceNum)
+      ? currentBalanceNum - currentMonthNet
+      : 0;
+    let rollingBalance = previousMonthEndBalance;
+
     monthlyUsage.forEach((m) => {
       m.endBalance = Number(rollingBalance.toFixed(2));
 
@@ -330,16 +401,113 @@ export default async (req) => {
       consumedTaka: d.consumedTaka || 0,
       consumedUnit: d.consumedUnit || 0,
     }));
+    const sortedDailyConsumption = dailyConsumption
+      .slice()
+      .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
+
+    const previousMonthlyByKey = new Map(previousMonthlyUsage.map((m) => [m.monthKey, m]));
+    const monthlyComparison = monthlyUsage.map((current) => {
+      const [yearPart, monthPart] = String(current.monthKey || '').split('-');
+      const previousKey = `${(Number(yearPart) || 0) - 1}-${monthPart || '01'}`;
+      const previous = previousMonthlyByKey.get(previousKey);
+      const currentBdt = Number(current.usedElectricity) || 0;
+      const previousBdt = Number(previous?.usedElectricity) || 0;
+      const currentKwh = Number(current.usedKwh) || 0;
+      const previousKwh = Number(previous?.usedKwh) || 0;
+      return {
+        monthKey: current.monthKey,
+        month: current.month,
+        year: current.year,
+        previousMonthKey: previousKey,
+        currentBdt,
+        previousBdt,
+        deltaBdt: Number((currentBdt - previousBdt).toFixed(2)),
+        currentKwh,
+        previousKwh,
+        deltaKwh: Number((currentKwh - previousKwh).toFixed(3)),
+      };
+    });
+
+    const rechargeConsumptionComparison = monthlyUsage.map((m) => {
+      const recharge = Number(m.totalRecharge) || 0;
+      const consumption = Number(m.usedElectricity) || 0;
+      return {
+        monthKey: m.monthKey,
+        month: m.month,
+        year: m.year,
+        rechargeBdt: recharge,
+        consumptionBdt: consumption,
+        netBdt: Number((recharge - consumption).toFixed(2)),
+        usedKwh: Number(m.usedKwh) || 0,
+        maxDemand: Number(m.maxDemand) || 0,
+      };
+    });
+
+    const latestDaily = sortedDailyConsumption[sortedDailyConsumption.length - 1] || null;
+    const previousMonthDailyTail = [...sortedDailyConsumption]
+      .reverse()
+      .find((entry) => !String(entry.date || '').startsWith(currentMonthKey));
+
+    const usedThisMonthBdt = latestDaily && String(latestDaily.date || '').startsWith(currentMonthKey)
+      ? Number(latestDaily.consumedTaka) || currentMonthConsumption
+      : currentMonthConsumption;
+    const usedThisMonthKwh = (
+      latestDaily &&
+      previousMonthDailyTail &&
+      String(latestDaily.date || '').startsWith(currentMonthKey)
+    )
+      ? Number(((Number(latestDaily.consumedUnit) || 0) - (Number(previousMonthDailyTail.consumedUnit) || 0)).toFixed(3))
+      : null;
+
+    const lastRecharge = rechargeHistory[0] || null;
+    const rechargedThisYear = rechargeHistory.reduce((sum, row) => (
+      String(row.date || '').startsWith(`${now.getFullYear()}-`)
+        ? sum + (Number(row.rechargeAmount) || 0)
+        : sum
+    ), 0);
+
+    const maxLoadLastMonth = Number(monthlyUsage[0]?.maxDemand) || 0;
+    const maxLoadLastYear = monthlyUsage.reduce((max, m) => {
+      const value = Number(m.maxDemand) || 0;
+      return value > max ? value : max;
+    }, 0);
+
+    const descoInsights = {
+      summary: {
+        lastRechargeAmount: Number(lastRecharge?.rechargeAmount) || 0,
+        lastRechargeTime: lastRecharge?.date || '',
+        remainingBalance: Number.isFinite(currentBalanceNum) ? currentBalanceNum : 0,
+        readingTime: balanceRes?.data?.readingTime || '',
+        maxLoadLastMonth,
+        maxLoadLastYear,
+        usedThisMonthBdt: Number(usedThisMonthBdt.toFixed(2)),
+        usedThisMonthKwh: usedThisMonthKwh != null ? Number(usedThisMonthKwh.toFixed(3)) : null,
+        rechargedThisMonth: currentMonthRecharge > 0 ? Number(currentMonthRecharge.toFixed(2)) : null,
+        rechargedThisYear: Number(rechargedThisYear.toFixed(2)),
+      },
+      monthlyComparison,
+      rechargeConsumptionComparison,
+    };
 
     return Response.json({
       provider: 'desco',
       customerInfo,
       rechargeHistory,
       monthlyUsage,
+      previousMonthlyUsage,
       dailyConsumption,
+      descoInsights,
       meta: {
         rechargeHistorySource,
         rechargeHistoryCachedAt,
+        monthlyRechargeSource,
+        balanceAnchor: {
+          currentBalance: Number.isFinite(currentBalanceNum) ? currentBalanceNum : 0,
+          currentMonthConsumption,
+          currentMonthRecharge: Number(currentMonthRecharge.toFixed(2)),
+          anchorMonth: currentMonthKey,
+          anchoredPreviousMonthEnd: Number(previousMonthEndBalance.toFixed(2)),
+        },
       },
       fetchedAt: new Date().toISOString(),
     }, {

@@ -224,7 +224,12 @@ export default function Dashboard({
       )}
       {data.monthlyUsage?.length > 0 && (
         <motion.div variants={fadeUp}>
-          <MonthlyTable monthlyUsage={data.monthlyUsage} provider={data.provider} t={t} />
+          <MonthlyTable
+            monthlyUsage={data.monthlyUsage}
+            provider={data.provider}
+            descoInsights={data.descoInsights}
+            t={t}
+          />
         </motion.div>
       )}
     </motion.div>

@@ -83,8 +83,9 @@ function ShareButton({ meterNo, provider, t }) {
 
 export default function CustomerInfo({ data, meterNo, onReset, isSaved, onSave, nickname, t }) {
   const { customerInfo } = data
+  const isDesco = data?.provider === 'desco'
 
-  const fields = [
+  const baseFields = [
     { label: 'Consumer No', value: customerInfo?.consumerNo || meterNo },
     { label: 'Meter No', value: customerInfo?.meterNo || '-' },
     { label: 'Tariff', value: customerInfo?.tariff || '-' },
@@ -96,6 +97,18 @@ export default function CustomerInfo({ data, meterNo, onReset, isSaved, onSave, 
     { label: 'Installed', value: customerInfo?.installDate || '-' },
     { label: 'Min Recharge', value: customerInfo?.minRecharge ? `৳${customerInfo.minRecharge}` : '-' },
   ]
+  const descoExtraFields = isDesco ? [
+    { label: 'Registered', value: customerInfo?.registrationDate || '-' },
+    { label: 'Meter Model', value: customerInfo?.meterModel || '-' },
+    { label: 'Transformer', value: customerInfo?.transformer || '-' },
+    { label: 'System Type', value: customerInfo?.systemType || '-' },
+    { label: 'Zone', value: customerInfo?.zone || '-' },
+    { label: 'Block', value: customerInfo?.block || '-' },
+    { label: 'Route', value: customerInfo?.route || '-' },
+    { label: 'Latitude', value: customerInfo?.latitude || '-' },
+    { label: 'Longitude', value: customerInfo?.longitude || '-' },
+  ] : []
+  const fields = [...baseFields, ...descoExtraFields]
 
   return (
     <motion.div

@@ -28,10 +28,22 @@ function formatMonthLabel(row) {
   return `${month} ${yy}`
 }
 
-export default function MonthlyTable({ monthlyUsage, provider, t }) {
+export default function MonthlyTable({ monthlyUsage, provider, t, descoInsights }) {
   const isDesco = provider === 'desco'
 
   if (isDesco) {
+    const summary = descoInsights?.summary || {}
+    const monthlyComparisonByKey = new Map(
+      (descoInsights?.monthlyComparison || []).map((row) => [row.monthKey, row]),
+    )
+    const summaryItems = [
+      { label: 'Last Recharge', value: summary.lastRechargeAmount ? formatMoney(summary.lastRechargeAmount, { decimals: 2 }) : 'N/A', sub: summary.lastRechargeTime || '-' },
+      { label: 'Remaining Balance', value: formatMoney(summary.remainingBalance || 0, { decimals: 2 }), sub: summary.readingTime || '-' },
+      { label: 'Used This Month', value: `${formatDecimal(summary.usedThisMonthBdt || 0, 2)} BDT`, sub: summary.usedThisMonthKwh != null ? `${formatDecimal(summary.usedThisMonthKwh, 2)} kWh` : 'kWh unavailable' },
+      { label: 'Recharged This Month', value: summary.rechargedThisMonth != null ? formatMoney(summary.rechargedThisMonth, { decimals: 2 }) : 'N/A', sub: `Year: ${formatMoney(summary.rechargedThisYear || 0, { decimals: 2 })}` },
+      { label: 'Max Load (Last Month)', value: summary.maxLoadLastMonth ? `${formatDecimal(summary.maxLoadLastMonth, 2)} kW` : 'N/A', sub: `Year max: ${formatDecimal(summary.maxLoadLastYear || 0, 2)} kW` },
+    ]
+
     return (
       <motion.div
         initial={{ opacity: 0, y: 15 }}
@@ -41,18 +53,31 @@ export default function MonthlyTable({ monthlyUsage, provider, t }) {
       >
         <div className="px-6 py-6 border-b border-[var(--color-outline)]">
           <h3 className="text-lg font-semibold text-[var(--color-ink)] tracking-tight">{t('Monthly Breakdown')}</h3>
-          <p className="text-sm text-[var(--color-ink)]/70 mt-1">DESCO monthly consumption summary</p>
+          <p className="text-sm text-[var(--color-ink)]/70 mt-1">DESCO monthly, recharge, and previous-year comparison</p>
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {summaryItems.map((item, i) => (
+              <div key={i} className="rounded-xl border border-[var(--color-outline)] bg-[var(--color-surface-dim)]/40 px-3 py-2">
+                <div className="text-[11px] uppercase tracking-wide text-[var(--color-ink-muted)]">{item.label}</div>
+                <div className="text-sm font-semibold text-[var(--color-ink)] mt-0.5">{item.value}</div>
+                <div className="text-[11px] text-[var(--color-ink-muted)] mt-0.5">{item.sub}</div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-[760px] w-full text-sm text-left whitespace-nowrap">
+          <table className="min-w-[1080px] w-full text-sm text-left whitespace-nowrap">
             <thead className="bg-[var(--color-surface-dim)]/50 text-[var(--color-ink-muted)] font-medium">
               <tr>
                 <th className="px-4 py-3 border-b border-[var(--color-outline)] font-medium">Month</th>
-                <th className="px-4 py-3 border-b border-[var(--color-outline)] font-medium text-right">Elec</th>
+                <th className="px-4 py-3 border-b border-[var(--color-outline)] font-medium text-right">Recharge</th>
+                <th className="px-4 py-3 border-b border-[var(--color-outline)] font-medium text-right">Consumption (BDT)</th>
+                <th className="px-4 py-3 border-b border-[var(--color-outline)] font-medium text-right">Prev Year (BDT)</th>
                 <th className="px-4 py-3 border-b border-[var(--color-outline)] font-medium text-right">kWh</th>
+                <th className="px-4 py-3 border-b border-[var(--color-outline)] font-medium text-right">Prev Year (kWh)</th>
+                <th className="px-4 py-3 border-b border-[var(--color-outline)] font-medium text-right">Net</th>
                 <th className="px-4 py-3 border-b border-[var(--color-outline)] font-medium text-right">Max Demand</th>
-                <th className="px-4 py-3 border-b border-[var(--color-outline)] font-medium text-right">Avg Rate</th>
+                <th className="px-4 py-3 border-b border-[var(--color-outline)] font-medium text-right">Balance</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--color-outline)]">
@@ -64,21 +89,33 @@ export default function MonthlyTable({ monthlyUsage, provider, t }) {
                   transition={{ duration: 0.3, delay: Math.min(i * 0.04, 0.4) }}
                   className="hover:bg-[var(--color-surface-dim)]/50 transition-colors"
                 >
-                  <td className="px-4 py-3 text-[var(--color-ink)] font-medium">{formatMonthLabel(m)}</td>
-                  <td className="px-4 py-3 text-right text-[var(--color-ink)]/70">{formatMoney(m.usedElectricity)}</td>
-                  <td className="px-4 py-3 text-right">
-                    <span className="px-2 py-1 bg-[var(--color-surface-dim)] text-[var(--color-ink)] rounded-md text-xs font-medium">
-                      {Number.isFinite(Number(m.usedKwh)) ? Number(m.usedKwh).toFixed(2) : '-'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right text-[var(--color-ink)]/60">
-                    {Number(m.maxDemand) > 0 ? `${Number(m.maxDemand).toFixed(2)} kW` : '-'}
-                  </td>
-                  <td className="px-4 py-3 text-right text-[var(--color-ink)]/60">
-                    {Number(m.usedKwh) > 0
-                      ? `৳${(Number(m.usedElectricity) / Number(m.usedKwh)).toFixed(2)}`
-                      : '-'}
-                  </td>
+                  {(() => {
+                    const cmp = monthlyComparisonByKey.get(m.monthKey) || {}
+                    const prevBdt = Number(cmp.previousBdt)
+                    const prevKwh = Number(cmp.previousKwh)
+                    const net = (Number(m.totalRecharge) || 0) - (Number(m.usedElectricity) || 0)
+                    return (
+                      <>
+                        <td className="px-4 py-3 text-[var(--color-ink)] font-medium">{formatMonthLabel(m)}</td>
+                        <td className="px-4 py-3 text-right text-[var(--color-ink)]/70">{formatMoney(m.totalRecharge, { decimals: 2 })}</td>
+                        <td className="px-4 py-3 text-right text-[var(--color-ink)]/70">{formatMoney(m.usedElectricity, { decimals: 2 })}</td>
+                        <td className="px-4 py-3 text-right text-[var(--color-ink)]/60">{Number.isFinite(prevBdt) && prevBdt > 0 ? formatMoney(prevBdt, { decimals: 2 }) : '-'}</td>
+                        <td className="px-4 py-3 text-right text-[var(--color-ink)]">{formatDecimal(m.usedKwh, 2)}</td>
+                        <td className="px-4 py-3 text-right text-[var(--color-ink)]/60">{Number.isFinite(prevKwh) && prevKwh > 0 ? formatDecimal(prevKwh, 2) : '-'}</td>
+                        <td className={`px-4 py-3 text-right font-medium ${net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatMoney(net, { decimals: 2 })}
+                        </td>
+                        <td className="px-4 py-3 text-right text-[var(--color-ink)]/60">
+                          {Number(m.maxDemand) > 0 ? `${Number(m.maxDemand).toFixed(2)} kW` : '-'}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <span className={`px-2 py-1 rounded-md text-xs font-medium ${m.endBalance >= 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                            {formatMoney(m.endBalance, { decimals: 2 })}
+                          </span>
+                        </td>
+                      </>
+                    )
+                  })()}
                 </motion.tr>
               ))}
             </tbody>
