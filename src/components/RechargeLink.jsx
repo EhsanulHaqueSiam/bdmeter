@@ -166,6 +166,37 @@ export default function RechargeLink({ meterNo, t }) {
     }
   }
 
+  const menuContent = (
+    <>
+      <button
+        onClick={() => { haptic(); copyMeter() }}
+        className="w-full px-4 py-3 text-left text-sm font-medium text-[var(--color-ink)] hover:bg-[var(--color-surface-dim)] transition-colors cursor-pointer flex items-center justify-between border-b border-[var(--color-outline)]"
+      >
+        <span className="font-mono text-xs truncate pr-2">{meterNo}</span>
+        <span className="text-[10px] font-medium text-[var(--color-ink-muted)] shrink-0">
+          {copied ? t('Copied') : t('Copy')}
+        </span>
+      </button>
+      <div className="px-4 py-2 text-[10px] text-[var(--color-ink-muted)] border-b border-[var(--color-outline)]">
+        Meter copied automatically before opening app.
+      </div>
+      {PROVIDERS.map((p) => (
+        <button
+          key={p.name}
+          type="button"
+          className="w-full px-4 py-3 text-left text-sm font-medium text-[var(--color-ink)] hover:bg-[var(--color-surface-dim)] hover:translate-x-0.5 transition-all cursor-pointer flex items-center gap-3 border-b border-[var(--color-outline)] last:border-0"
+          onClick={() => openProvider(p)}
+        >
+          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
+          {p.name}
+          <svg className="w-3 h-3 ml-auto text-[var(--color-ink-muted)]" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+          </svg>
+        </button>
+      ))}
+    </>
+  )
+
   return (
     <div ref={ref} className="relative">
       <motion.button
@@ -182,41 +213,33 @@ export default function RechargeLink({ meterNo, t }) {
       </motion.button>
       <AnimatePresence>
         {open && (
-          <motion.div
-            initial={{ opacity: 0, y: -5, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -5, scale: 0.95 }}
-            transition={{ duration: 0.15 }}
-            className="absolute top-full mt-2 left-0 w-56 max-w-[calc(100vw-1.5rem)] sm:left-auto sm:right-0 bg-[var(--color-surface)] border border-[var(--color-outline)] rounded-xl shadow-lg overflow-hidden z-[70]"
-          >
-            {/* Copy meter number */}
-            <button
-              onClick={() => { haptic(); copyMeter() }}
-              className="w-full px-4 py-3 text-left text-sm font-medium text-[var(--color-ink)] hover:bg-[var(--color-surface-dim)] transition-colors cursor-pointer flex items-center justify-between border-b border-[var(--color-outline)]"
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/20 z-[80] sm:hidden"
+              onClick={() => setOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ duration: 0.15 }}
+              className="fixed left-2 right-2 bottom-2 bg-[var(--color-surface)] border border-[var(--color-outline)] rounded-xl shadow-lg overflow-hidden z-[81] max-h-[70vh] overflow-y-auto sm:hidden"
             >
-              <span className="font-mono text-xs">{meterNo}</span>
-              <span className="text-[10px] font-medium text-[var(--color-ink-muted)]">
-                {copied ? t('Copied') : t('Copy')}
-              </span>
-            </button>
-            <div className="px-4 py-2 text-[10px] text-[var(--color-ink-muted)] border-b border-[var(--color-outline)]">
-              Meter copied automatically before opening app.
-            </div>
-            {PROVIDERS.map((p) => (
-              <button
-                key={p.name}
-                type="button"
-                className="w-full px-4 py-3 text-left text-sm font-medium text-[var(--color-ink)] hover:bg-[var(--color-surface-dim)] hover:translate-x-0.5 transition-all cursor-pointer flex items-center gap-3 border-b border-[var(--color-outline)] last:border-0"
-                onClick={() => openProvider(p)}
-              >
-                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
-                {p.name}
-                <svg className="w-3 h-3 ml-auto text-[var(--color-ink-muted)]" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                </svg>
-              </button>
-            ))}
-          </motion.div>
+              {menuContent}
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: -5, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -5, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="hidden sm:block absolute top-full mt-2 left-0 w-56 max-w-[calc(100vw-1.5rem)] sm:left-auto sm:right-0 bg-[var(--color-surface)] border border-[var(--color-outline)] rounded-xl shadow-lg overflow-hidden z-[70]"
+            >
+              {menuContent}
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>

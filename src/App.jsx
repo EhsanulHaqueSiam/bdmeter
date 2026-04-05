@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import MeterInput from './components/MeterInput'
-import PullToRefresh from './components/PullToRefresh'
 import DataManager from './components/DataManager'
 import OnboardingTour from './components/OnboardingTour'
 import Confetti from './components/Confetti'
@@ -438,17 +437,6 @@ function App() {
     }
   }, [data, isHardRefreshing, meterNo, provider]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Pull-to-refresh handler
-  const handlePullRefresh = useCallback(() => {
-    if (data && meterNo) {
-      return fetchData(meterNo, data.provider || provider, {
-        save: false,
-        forceRefresh: true,
-        silent: true,
-      })
-    }
-  }, [data, meterNo, provider]) // eslint-disable-line react-hooks/exhaustive-deps
-
   // Format "Updated X min ago"
   const [, setTick] = useState(0)
   useEffect(() => {
@@ -620,72 +608,70 @@ function App() {
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <PullToRefresh onRefresh={handlePullRefresh}>
-          <AnimatePresence mode="wait">
-            {!data && !loading && (
-              <motion.div key="input" {...pageTransition}>
-                <MeterInput
-                  onSubmit={fetchData}
-                  error={error}
+        <AnimatePresence mode="wait">
+          {!data && !loading && (
+            <motion.div key="input" {...pageTransition}>
+              <MeterInput
+                onSubmit={fetchData}
+                error={error}
+                meters={meters}
+                onSwitchMeter={switchMeter}
+                onRemoveMeter={removeMeter}
+                onSetPrimary={setPrimary}
+                onSetNickname={setNickname}
+                searchHistory={searchHistory}
+                onClearHistory={clearSearchHistory}
+                t={t}
+              />
+            </motion.div>
+          )}
+          {loading && (
+            <motion.div key="loading" {...pageTransition}>
+              <LoadingSkeleton provider={provider} t={t} />
+            </motion.div>
+          )}
+          {data && (
+            <motion.div
+              key={`dashboard-${meterNo}`}
+              initial={{ opacity: 0, x: swipeDirection * 50, y: swipeDirection === 0 ? 20 : 0 }}
+              animate={{ opacity: 1, x: 0, y: 0 }}
+              exit={{ opacity: 0, x: swipeDirection * -50, y: swipeDirection === 0 ? -20 : 0 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <Suspense fallback={<LoadingSkeleton provider={provider} t={t} />}>
+                <Dashboard
+                  data={data}
+                  meterNo={meterNo}
+                  onReset={goHome}
+                  isSaved={meters.some(m => m.number === meterNo && (m.provider || 'nesco') === (data?.provider || provider))}
+                  onSave={() => addMeter(meterNo, data?.customerInfo?.name || '', data?.provider || provider)}
                   meters={meters}
-                  onSwitchMeter={switchMeter}
-                  onRemoveMeter={removeMeter}
-                  onSetPrimary={setPrimary}
-                  onSetNickname={setNickname}
-                  searchHistory={searchHistory}
-                  onClearHistory={clearSearchHistory}
+                  nickname={meters.find(m => m.number === meterNo && (m.provider || 'nesco') === (data?.provider || provider))?.nickname}
+                  onHardRefresh={handleHardRefresh}
+                  hardRefreshing={isHardRefreshing}
                   t={t}
                 />
-              </motion.div>
-            )}
-            {loading && (
-              <motion.div key="loading" {...pageTransition}>
-                <LoadingSkeleton provider={provider} t={t} />
-              </motion.div>
-            )}
-            {data && (
-              <motion.div
-                key={`dashboard-${meterNo}`}
-                initial={{ opacity: 0, x: swipeDirection * 50, y: swipeDirection === 0 ? 20 : 0 }}
-                animate={{ opacity: 1, x: 0, y: 0 }}
-                exit={{ opacity: 0, x: swipeDirection * -50, y: swipeDirection === 0 ? -20 : 0 }}
-                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              >
-                <Suspense fallback={<LoadingSkeleton provider={provider} t={t} />}>
-                  <Dashboard
-                    data={data}
-                    meterNo={meterNo}
-                    onReset={goHome}
-                    isSaved={meters.some(m => m.number === meterNo && (m.provider || 'nesco') === (data?.provider || provider))}
-                    onSave={() => addMeter(meterNo, data?.customerInfo?.name || '', data?.provider || provider)}
-                    meters={meters}
-                    nickname={meters.find(m => m.number === meterNo && (m.provider || 'nesco') === (data?.provider || provider))?.nickname}
-                    onHardRefresh={handleHardRefresh}
-                    hardRefreshing={isHardRefreshing}
-                    t={t}
-                  />
-                </Suspense>
-                {/* Swipe dots indicator */}
-                {meters.length >= 2 && currentMeterIndex >= 0 && (
-                  <div className="flex justify-center gap-1.5 mt-6 print:hidden">
-                    {meters.map((m, i) => (
-                      <motion.button
-                        key={`${m.provider || 'nesco'}:${m.number}`}
-                        onClick={() => { setSwipeDirection(i > currentMeterIndex ? 1 : -1); switchMeter(m.number, m.provider || 'nesco') }}
-                        className={`rounded-full transition-all duration-300 cursor-pointer ${
-                          i === currentMeterIndex
-                            ? 'w-6 h-2 bg-[var(--color-ink)]/60'
-                            : 'w-2 h-2 bg-[var(--color-ink)]/20 hover:bg-[var(--color-ink)]/40'
-                        }`}
-                        aria-label={`Switch to meter ${m.number}`}
-                      />
-                    ))}
-                  </div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </PullToRefresh>
+              </Suspense>
+              {/* Swipe dots indicator */}
+              {meters.length >= 2 && currentMeterIndex >= 0 && (
+                <div className="flex justify-center gap-1.5 mt-6 print:hidden">
+                  {meters.map((m, i) => (
+                    <motion.button
+                      key={`${m.provider || 'nesco'}:${m.number}`}
+                      onClick={() => { setSwipeDirection(i > currentMeterIndex ? 1 : -1); switchMeter(m.number, m.provider || 'nesco') }}
+                      className={`rounded-full transition-all duration-300 cursor-pointer ${
+                        i === currentMeterIndex
+                          ? 'w-6 h-2 bg-[var(--color-ink)]/60'
+                          : 'w-2 h-2 bg-[var(--color-ink)]/20 hover:bg-[var(--color-ink)]/40'
+                      }`}
+                      aria-label={`Switch to meter ${m.number}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       <motion.footer
