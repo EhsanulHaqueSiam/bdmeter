@@ -1,48 +1,29 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import { estimateDailyBurn } from '../utils/usageEstimator'
 
 export default function RechargeCalculator({ data, t }) {
   const [amount, setAmount] = useState('')
 
   const { monthlyUsage, dailyConsumption, rechargeHistory } = data
 
-  // Compute cost per kWh
-  let costPerKwh = 0
   const latestMonth = monthlyUsage?.[0]
-  if (latestMonth && latestMonth.usedKwh > 0) {
-    costPerKwh = latestMonth.usedElectricity / latestMonth.usedKwh
-  }
 
-  // Compute daily burn in taka
-  let dailyTaka = 0
-  if (dailyConsumption?.length >= 2) {
-    const sorted = [...dailyConsumption].sort((a, b) => a.date.localeCompare(b.date))
-    const recent = sorted.slice(-8)
-    if (recent.length >= 2) {
-      const first = recent[0]
-      const last = recent[recent.length - 1]
-      const days = recent.length - 1
-      const takaDiff = last.consumedTaka - first.consumedTaka
-      if (takaDiff > 0 && days > 0) dailyTaka = takaDiff / days
-    }
-  }
-  if (dailyTaka <= 0 && latestMonth) {
-    if (latestMonth.usedElectricity > 0) {
-      dailyTaka = latestMonth.usedElectricity / 30
-    }
-  }
-  if (dailyTaka <= 0 && rechargeHistory?.length >= 2) {
-    const dates = rechargeHistory
-      .map(r => new Date(r.date.replace(/(\d{2})-([A-Z]{3})-(\d{4})/, '$3-$2-$1')))
-      .filter(d => !isNaN(d))
-    if (dates.length >= 2) {
-      const newest = dates[0]
-      const oldest = dates[Math.min(dates.length - 1, 9)]
-      const daySpan = (newest - oldest) / (1000 * 60 * 60 * 24)
-      const totalSpent = rechargeHistory.slice(0, Math.min(rechargeHistory.length, 10)).reduce((s, r) => s + r.rechargeAmount, 0)
-      if (daySpan > 0) dailyTaka = totalSpent / daySpan
-    }
-  }
+  const burnEstimate = estimateDailyBurn({ dailyConsumption, monthlyUsage, rechargeHistory })
+  const monthlyCostPerKwh = latestMonth && latestMonth.usedKwh > 0
+    ? latestMonth.usedElectricity / latestMonth.usedKwh
+    : 0
+  const trendCostPerKwh = Number(burnEstimate?.effectiveRate) || 0
+  const costPerKwh = trendCostPerKwh > 0 && monthlyCostPerKwh > 0
+    ? (trendCostPerKwh * 0.65) + (monthlyCostPerKwh * 0.35)
+    : trendCostPerKwh || monthlyCostPerKwh
+  const dailyTaka = Number(burnEstimate?.dailyTaka) || 0
+
+  const modelMeta = burnEstimate?.windowDays > burnEstimate?.activeDays
+    ? `${burnEstimate.activeDays} active / ${burnEstimate.windowDays} recent days`
+    : burnEstimate?.dataPoints
+      ? `${burnEstimate.dataPoints} data points`
+      : ''
 
   const numAmount = parseFloat(amount) || 0
   const estimatedKwh = costPerKwh > 0 ? numAmount / costPerKwh : 0
@@ -63,6 +44,11 @@ export default function RechargeCalculator({ data, t }) {
       <p className="text-sm text-[var(--color-ink-muted)] mb-6">
         {t('If I recharge')}...
       </p>
+      {burnEstimate && (
+        <p className="text-xs text-[var(--color-ink-muted)] mb-5">
+          {burnEstimate.dataSource}{modelMeta ? ` • ${modelMeta}` : ''}
+        </p>
+      )}
 
       <div className="flex items-center gap-4 mb-6">
         <div className="relative flex-1 max-w-xs">

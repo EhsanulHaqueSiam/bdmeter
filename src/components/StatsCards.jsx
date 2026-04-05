@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import AnimatedNumber from './AnimatedNumber'
 import Sparkline from './Sparkline'
+import { estimateDailyBurn } from '../utils/usageEstimator'
 
 function formatFixed(value, decimals = 2) {
   const n = Number(value)
@@ -9,7 +10,7 @@ function formatFixed(value, decimals = 2) {
 }
 
 function computeForecast(data) {
-  const { customerInfo, monthlyUsage, dailyConsumption, rechargeHistory } = data
+  const { customerInfo, monthlyUsage } = data
 
   const balance = customerInfo?.balance
     ? parseFloat(customerInfo.balance.replace(/[^\d.-]/g, ''))
@@ -17,70 +18,21 @@ function computeForecast(data) {
 
   if (balance <= 0) return null
 
-  let dailyTaka = 0
-  let dailyKwh = 0
-  let dataSource = ''
-  let dataPoints = 0
-
-  // Try daily consumption (DESCO) — values are cumulative, compute diffs
-  if (dailyConsumption?.length >= 2) {
-    const sorted = [...dailyConsumption].sort((a, b) => a.date.localeCompare(b.date))
-    // Take last 8 entries to get 7 days of diffs
-    const recent = sorted.slice(-8)
-    if (recent.length >= 2) {
-      const first = recent[0]
-      const last = recent[recent.length - 1]
-      const days = recent.length - 1
-      const takaDiff = last.consumedTaka - first.consumedTaka
-      const kwhDiff = last.consumedUnit - first.consumedUnit
-
-      if (takaDiff > 0 && days > 0) {
-        dailyTaka = takaDiff / days
-        dailyKwh = kwhDiff / days
-        dataSource = `Last ${days}d avg`
-        dataPoints = days
-      }
-    }
-  }
-
-  // Fallback: estimate from latest month
-  if (dailyTaka <= 0 && monthlyUsage?.length > 0) {
-    const latest = monthlyUsage[0]
-    if (latest.usedElectricity > 0) {
-      // Estimate days in the month from the data
-      const daysInMonth = 30
-      dailyTaka = latest.usedElectricity / daysInMonth
-      dailyKwh = latest.usedKwh / daysInMonth
-      dataSource = 'Monthly avg'
-      dataPoints = daysInMonth
-    }
-  }
-
-  // Second fallback: estimate from recharge frequency
-  if (dailyTaka <= 0 && rechargeHistory?.length >= 2) {
-    const dates = rechargeHistory
-      .map(r => new Date(r.date.replace(/(\d{2})-([A-Z]{3})-(\d{4})/, '$3-$2-$1')))
-      .filter(d => !isNaN(d))
-    if (dates.length >= 2) {
-      const newest = dates[0]
-      const oldest = dates[Math.min(dates.length - 1, 9)]
-      const daySpan = (newest - oldest) / (1000 * 60 * 60 * 24)
-      const totalSpent = rechargeHistory.slice(0, Math.min(rechargeHistory.length, 10)).reduce((s, r) => s + r.rechargeAmount, 0)
-      if (daySpan > 0) {
-        dailyTaka = totalSpent / daySpan
-        dataSource = 'Recharge pattern'
-        dataPoints = Math.min(rechargeHistory.length, 10)
-      }
-    }
-  }
+  const burnEstimate = estimateDailyBurn(data)
+  const dailyTaka = Number(burnEstimate?.dailyTaka) || 0
+  const dailyKwh = Number(burnEstimate?.dailyKwh) || 0
 
   if (dailyTaka <= 0) return null
 
-  const daysLeft = Math.floor(balance / dailyTaka)
+  const daysLeft = Math.max(0, Math.floor(balance / dailyTaka))
   const depletionDate = new Date()
   depletionDate.setDate(depletionDate.getDate() + daysLeft)
 
-  const effectiveRate = dailyKwh > 0 ? dailyTaka / dailyKwh : 0
+  const effectiveRate = Number(burnEstimate?.effectiveRate) > 0
+    ? Number(burnEstimate.effectiveRate)
+    : dailyKwh > 0
+      ? dailyTaka / dailyKwh
+      : 0
 
   return {
     daysLeft,
@@ -88,8 +40,10 @@ function computeForecast(data) {
     dailyKwh,
     effectiveRate,
     depletionDate,
-    dataSource,
-    dataPoints,
+    dataSource: burnEstimate?.dataSource || 'Usage model',
+    dataPoints: burnEstimate?.dataPoints || 0,
+    windowDays: burnEstimate?.windowDays || burnEstimate?.dataPoints || 0,
+    activeDays: burnEstimate?.activeDays || burnEstimate?.dataPoints || 0,
     balance,
   }
 }
@@ -109,7 +63,7 @@ export default function StatsCards({ data, t }) {
     ? parseFloat(customerInfo.balance.replace(/[^\d.-]/g, ''))
     : latestMonth?.endBalance || 0
 
-  const costPerKwh = latestMonth && latestMonth.usedKwh > 0
+  const monthlyCostPerKwh = latestMonth && latestMonth.usedKwh > 0
     ? latestMonth.usedElectricity / latestMonth.usedKwh
     : 0
 
@@ -122,6 +76,12 @@ export default function StatsCards({ data, t }) {
     : null
 
   const forecast = computeForecast(data)
+
+  const costPerKwh = forecast?.effectiveRate > 0 && monthlyCostPerKwh > 0
+    ? (forecast.effectiveRate * 0.65) + (monthlyCostPerKwh * 0.35)
+    : forecast?.effectiveRate > 0
+      ? forecast.effectiveRate
+      : monthlyCostPerKwh
 
   // Sparkline data: last 6 months (reversed so oldest first for the chart)
   const balanceSparkData = monthlyUsage.slice(0, 6).map(m => m.endBalance).reverse()
@@ -261,7 +221,11 @@ export default function StatsCards({ data, t }) {
             <div>
               <h3 className="text-lg font-semibold text-[var(--color-ink)] tracking-tight">{t('Balance Forecast')}</h3>
               <p className="text-sm text-[var(--color-ink-muted)] mt-0.5">
-                Based on {forecast.dataSource.toLowerCase()} ({forecast.dataPoints} data points)
+                Based on {forecast.dataSource} (
+                {forecast.windowDays > forecast.activeDays
+                  ? `${forecast.activeDays} active days from last ${forecast.windowDays} days`
+                  : `${forecast.dataPoints} data points`}
+                )
               </p>
             </div>
             <motion.span
