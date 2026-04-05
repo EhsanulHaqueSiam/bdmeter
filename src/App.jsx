@@ -219,6 +219,19 @@ function isCachePayloadUsable(dataset, provider) {
   return hasMonthly || hasRecharge
 }
 
+function isHorizontalScrollContext(target) {
+  if (!target || typeof target.closest !== 'function') return false
+  const candidates = [
+    target,
+    target.closest('[data-horizontal-scroll]'),
+    target.closest('.overflow-x-auto'),
+  ].filter(Boolean)
+
+  return candidates.some((node) => (
+    node?.scrollWidth && node?.clientWidth && node.scrollWidth > node.clientWidth + 4
+  ))
+}
+
 function App() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -589,6 +602,12 @@ function App() {
   // Swipe between meters
   const handleTouchStart = useCallback((e) => {
     if (meters.length < 2 || !data) return
+    if (e.touches.length !== 1) return
+    const target = e.target
+    if (isHorizontalScrollContext(target)) {
+      touchStartRef.current = null
+      return
+    }
     touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
   }, [meters.length, data])
 

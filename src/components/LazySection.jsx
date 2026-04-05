@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 export default function LazySection({ children, height = 320, className = '' }) {
   const [visible, setVisible] = useState(() => {
     if (typeof window === 'undefined') return false
+    if (typeof window.IntersectionObserver !== 'function') return true
     return window.matchMedia('print').matches
   })
   const ref = useRef(null)
@@ -12,10 +13,18 @@ export default function LazySection({ children, height = 320, className = '' }) 
     if (!el) return
 
     const media = window.matchMedia('print')
+    const fallbackTimer = window.setTimeout(() => setVisible(true), 1800)
+
+    if (typeof window.IntersectionObserver !== 'function') {
+      window.clearTimeout(fallbackTimer)
+      return () => {}
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setVisible(true)
+          window.clearTimeout(fallbackTimer)
           observer.disconnect()
         }
       },
@@ -33,6 +42,7 @@ export default function LazySection({ children, height = 320, className = '' }) 
     media.addListener?.(onPrintMediaChange)
 
     return () => {
+      window.clearTimeout(fallbackTimer)
       observer.disconnect()
       window.removeEventListener('beforeprint', onBeforePrint)
       media.removeEventListener?.('change', onPrintMediaChange)
