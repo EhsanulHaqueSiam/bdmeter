@@ -93,6 +93,18 @@ function getCandidateProviders(meter) {
   return []
 }
 
+function isPageReloadNavigation() {
+  try {
+    const entries = performance.getEntriesByType?.('navigation')
+    if (entries?.[0]?.type) {
+      return entries[0].type === 'reload'
+    }
+    return performance.navigation?.type === 1
+  } catch {
+    return false
+  }
+}
+
 function App() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -169,6 +181,7 @@ function App() {
   }, [data, meterNo, provider, meters])
 
   useEffect(() => {
+    const forceRefresh = isPageReloadNavigation()
     // Check URL params first (shared link)
     const params = new URLSearchParams(window.location.search)
     const urlMeter = params.get('meter')
@@ -177,13 +190,13 @@ function App() {
       const sharedProvider = (urlProvider === 'desco' || urlProvider === 'nesco')
         ? urlProvider
         : AUTO_PROVIDER
-      fetchData(urlMeter, sharedProvider, { save: false })
+      fetchData(urlMeter, sharedProvider, { save: false, forceRefresh })
       return
     }
     // Otherwise load primary meter
     const primary = getPrimary()
     if (primary && !data && !loading) {
-      fetchData(primary.number, primary.provider || AUTO_PROVIDER)
+      fetchData(primary.number, primary.provider || AUTO_PROVIDER, { forceRefresh })
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -368,7 +381,11 @@ function App() {
   useEffect(() => {
     if (data && meterNo) {
       autoRefreshRef.current = setInterval(() => {
-        fetchData(meterNo, data.provider || provider, { save: false, silent: true })
+        fetchData(meterNo, data.provider || provider, {
+          save: false,
+          forceRefresh: true,
+          silent: true,
+        })
       }, 5 * 60 * 1000)
     }
     return () => {
@@ -448,7 +465,7 @@ function App() {
     return `${mins} min ago`
   }
 
-  const activeProvider = data?.provider || provider
+  const activeProvider = data?.provider || (loading ? provider : null)
 
   // Show onboarding only on landing page with no saved meters
   const showOnboarding = !data && !loading && meters.length === 0
@@ -490,7 +507,16 @@ function App() {
             <motion.div
               whileHover={{ scale: 1.1, rotate: 5 }}
               whileTap={{ scale: 0.95 }}
-              className={`w-8 h-8 flex items-center justify-center rounded-xl shadow-sm ${activeProvider === 'desco' ? 'bg-[var(--color-desco)]' : 'bg-[var(--color-nesco)]'}`}
+              className={`w-8 h-8 flex items-center justify-center rounded-xl shadow-sm ${
+                activeProvider
+                  ? activeProvider === 'desco'
+                    ? 'bg-[var(--color-desco)]'
+                    : 'bg-[var(--color-nesco)]'
+                  : ''
+              }`}
+              style={!activeProvider
+                ? { background: 'linear-gradient(135deg, var(--color-nesco), var(--color-desco))' }
+                : undefined}
             >
               <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
@@ -506,7 +532,9 @@ function App() {
                   transition={{ duration: 0.2 }}
                   className="text-lg font-bold tracking-tight text-[var(--color-ink)]"
                 >
-                  {activeProvider === 'desco' ? 'DESCO' : 'NESCO'}
+                  {activeProvider
+                    ? activeProvider === 'desco' ? 'DESCO' : 'NESCO'
+                    : 'NESCO + DESCO'}
                 </motion.h1>
               </AnimatePresence>
               <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--color-ink-muted)]">{t('Grid Watch')}</p>
@@ -667,7 +695,11 @@ function App() {
         className="mt-auto border-t border-[var(--color-outline)] py-12 bg-[var(--color-surface)] print:hidden"
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs font-medium text-[var(--color-ink-muted)]">
-          <p>Data sourced directly from {activeProvider === 'desco' ? 'DESCO' : 'NESCO'}. Not an official product.</p>
+          <p>
+            {data
+              ? `Data sourced directly from ${(data.provider || 'nesco') === 'desco' ? 'DESCO' : 'NESCO'}. Not an official product.`
+              : 'Supports both NESCO and DESCO data sources. Not an official product.'}
+          </p>
           <p className="mt-2">Designed for clarity and utility.</p>
           <p className="mt-2 text-[var(--color-ink-muted)]">{t('Tip: Add to home screen for quick access to your balance')}</p>
           {data && lastUpdated && (
