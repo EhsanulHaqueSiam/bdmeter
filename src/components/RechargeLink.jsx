@@ -6,24 +6,37 @@ const PROVIDERS = [
   {
     name: 'bKash',
     deepLinks: { android: 'bkash://', ios: 'bkash://' },
+    androidIntents: [
+      'intent://#Intent;scheme=bkash;package=com.bKash.customerapp;end',
+    ],
     webUrl: 'https://www.bkash.com/en/products-services/pay-bill',
     color: '#E2136E',
   },
   {
     name: 'Nagad',
     deepLinks: { android: 'nagad://', ios: 'nagad://' },
+    androidIntents: [
+      'intent://#Intent;scheme=nagad;package=com.konasl.nagad;end',
+      'intent://#Intent;scheme=nagad;package=com.konasl.nagad.agent;end',
+    ],
     webUrl: 'https://nagad.com.bd/',
     color: '#F6921E',
   },
   {
     name: 'Rocket',
     deepLinks: { android: 'rocket://', ios: 'rocket://' },
+    androidIntents: [
+      'intent://#Intent;scheme=rocket;package=com.dbbl.mbs.apps.main;end',
+    ],
     webUrl: 'https://www.dutchbanglabank.com/rocket/rocket.html',
     color: '#8B2F8B',
   },
   {
     name: 'Upay',
     deepLinks: { android: 'upay://', ios: 'upay://' },
+    androidIntents: [
+      'intent://#Intent;scheme=upay;package=bd.com.upay.customer;end',
+    ],
     webUrl: 'https://www.upaybd.com/',
     color: '#00A651',
   },
@@ -45,10 +58,19 @@ function isIOS() {
   return /iPhone|iPad|iPod/i.test(ua) || touchMac
 }
 
-function getMobileDeepLink(provider) {
-  if (isAndroid()) return provider.deepLinks?.android || ''
-  if (isIOS()) return provider.deepLinks?.ios || ''
-  return ''
+function getMobileLaunchCandidates(provider) {
+  if (isAndroid()) {
+    return [
+      ...(provider.androidIntents || []),
+      provider.deepLinks?.android || '',
+    ].filter(Boolean)
+  }
+
+  if (isIOS()) {
+    return [provider.deepLinks?.ios || ''].filter(Boolean)
+  }
+
+  return []
 }
 
 function appendMeterQuery(url, meterNo) {
@@ -125,8 +147,8 @@ export default function RechargeLink({ meterNo, t }) {
       return
     }
 
-    const deepLink = getMobileDeepLink(provider)
-    if (!deepLink) {
+    const launchCandidates = getMobileLaunchCandidates(provider)
+    if (!launchCandidates.length) {
       window.location.assign(fallbackUrl)
       return
     }
@@ -156,14 +178,26 @@ export default function RechargeLink({ meterNo, t }) {
     fallbackTimer = window.setTimeout(() => {
       clearFallback()
       window.location.assign(fallbackUrl)
-    }, 2200)
+    }, 2600)
 
-    try {
-      window.location.assign(deepLink)
-    } catch {
-      clearFallback()
-      window.location.assign(fallbackUrl)
+    const launchCandidate = (index) => {
+      if (index >= launchCandidates.length) return
+      try {
+        window.location.assign(launchCandidates[index])
+      } catch {
+        // Continue to next candidate.
+      }
+
+      if (index < launchCandidates.length - 1) {
+        window.setTimeout(() => {
+          if (document.visibilityState === 'visible') {
+            launchCandidate(index + 1)
+          }
+        }, 350)
+      }
     }
+
+    launchCandidate(0)
   }
 
   const menuContent = (
