@@ -150,7 +150,7 @@ export default function RechargeHistory({ rechargeHistory, provider, t }) {
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-outline)] shadow-sm overflow-hidden"
     >
-      <div className="px-6 py-6 border-b border-[var(--color-outline)] flex items-end justify-between">
+      <div className="px-6 py-6 border-b border-[var(--color-outline)] flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold text-[var(--color-ink)] tracking-tight">{t('History')}</h3>
           <p className="text-sm text-[var(--color-ink)]/70 mt-1">
@@ -160,7 +160,7 @@ export default function RechargeHistory({ rechargeHistory, provider, t }) {
             } {t('Transactions')}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}

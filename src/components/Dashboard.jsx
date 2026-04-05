@@ -173,7 +173,7 @@ export default function Dashboard({
       animate="animate"
       className="space-y-6"
     >
-      <motion.div variants={fadeUp} className="flex items-center justify-end gap-3 print:hidden">
+      <motion.div variants={fadeUp} className="flex flex-wrap items-center justify-start sm:justify-end gap-2 sm:gap-3 print:hidden">
         {meters && meters.length >= 2 && (
           <MeterComparison meters={meters} t={t} />
         )}
